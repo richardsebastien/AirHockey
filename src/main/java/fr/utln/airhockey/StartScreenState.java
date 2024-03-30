@@ -4,6 +4,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.BaseAppState;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.LayerBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.ScreenBuilder;
@@ -11,13 +12,14 @@ import de.lessvoid.nifty.controls.button.builder.ButtonBuilder;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 
+import javax.annotation.Nonnull;
+
 public class StartScreenState extends BaseAppState implements ScreenController {
     private Nifty nifty;
-    private NiftyJmeDisplay niftyDisplay;
 
     @Override
     protected void initialize(Application app) {
-        niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
+        NiftyJmeDisplay niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
                 app.getAssetManager(),
                 app.getInputManager(),
                 app.getAudioRenderer(),
@@ -118,7 +120,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     }
 
     @Override
-    public void bind(Nifty nifty, Screen screen) {
+    public void bind(@Nonnull Nifty nifty, @Nonnull Screen screen) {
         this.nifty = nifty;
     }
 
@@ -132,6 +134,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     public void onEndScreen() {
         // Called when the screen gets hidden
     }
+
 
     public void quitGame() {
         // Add code to quit game

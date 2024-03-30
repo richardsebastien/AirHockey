@@ -2,19 +2,20 @@ package fr.utln.airhockey;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
-import com.jme3.bullet.collision.PhysicsCollisionEvent;
-import com.jme3.bullet.collision.PhysicsCollisionListener;
-import com.jme3.bullet.collision.shapes.*;
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.bullet.BulletAppState;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.material.Material;
-import com.jme3.math.*;
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
@@ -37,9 +38,6 @@ public static void main(String[] args) {
 
     final private Vector3f camDir = new Vector3f();
     final private Vector3f camLeft = new Vector3f();
-    /** Prepare Materials */
-    private Material wall_mat;
-    private Material stone_mat;
     private Material floor_mat;
 
     /** Prepare geometries for bricks and cannonballs. */
@@ -55,7 +53,6 @@ public static void main(String[] args) {
         StartScreenState startScreenState = new StartScreenState();
         stateManager.attach(startScreenState);
 
-        /** Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         flyCam.setEnabled(false);
@@ -69,7 +66,6 @@ public static void main(String[] args) {
         initRaquette();
         setUpKeys();
 
-        /** Configure cam to look at scene */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
@@ -87,13 +83,13 @@ public static void main(String[] args) {
     }
 
     public void initMaterials() {
-        wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Material wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         TextureKey key = new TextureKey("Textures/Terrain/BrickWall/BrickWall.jpg");
         key.setGenerateMips(true);
         Texture tex = assetManager.loadTexture(key);
         wall_mat.setTexture("ColorMap", tex);
 
-        stone_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Material stone_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         TextureKey key2 = new TextureKey("Textures/Terrain/Rock/Rock.PNG");
         key2.setGenerateMips(true);
         Texture tex2 = assetManager.loadTexture(key2);
@@ -129,23 +125,19 @@ public static void main(String[] args) {
 
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /** Add physical brick to physics space. */
         geom.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
         box_phy.setAngularFactor(0f);
         box_phy.setRestitution(1.0f);
         box_phy.setFriction(0f);
 
-        bulletAppState.getPhysicsSpace().addCollisionListener(new PhysicsCollisionListener() {
-            @Override
-            public void collision(PhysicsCollisionEvent event) {
-                if (event.getObjectA() == player && event.getObjectB() == box_phy ||
-                        event.getObjectA() == box_phy && event.getObjectB() == player) {
-                    // Si la caméra entre en collision avec le cube
-                    // Déplacez le cube avec la caméra en ajustant sa position
-                    Vector3f camDirection = cam.getDirection().mult(25); // Vous pouvez ajuster le facteur multiplicatif selon vos besoins
-                    box_phy.setLinearVelocity(camDirection);
-                }
+        bulletAppState.getPhysicsSpace().addCollisionListener(event -> {
+            if (event.getObjectA() == player && event.getObjectB() == box_phy ||
+                    event.getObjectA() == box_phy && event.getObjectB() == player) {
+                // Si la caméra entre en collision avec le cube
+                // Déplacez le cube avec la caméra en ajustant sa position
+                Vector3f camDirection = cam.getDirection().mult(25); // Vous pouvez ajuster le facteur multiplicatif selon vos besoins
+                box_phy.setLinearVelocity(camDirection);
             }
         });
 
@@ -180,12 +172,6 @@ public static void main(String[] args) {
         cylinderGeom.setLocalTranslation(0, 0f, 0);
         sphereGeom.setLocalTranslation(0, 1.2f, 0f);
         cylinderGeom.rotate(FastMath.HALF_PI, 0, 0);
-        //cylinderGeom.move(4f, 4f, 4f);
-        //sphereGeom.move(4f, 4f, 4f);
-
-        RigidBodyControl object_phy = new RigidBodyControl(0.0f);
-        //compositeNode.addControl(object_phy);
-        //bulletAppState.getPhysicsSpace().add(object_phy);
 
         Node compositeNode = new Node("CompositeObject");
         compositeNode.attachChild(cylinderGeom);
@@ -196,15 +182,6 @@ public static void main(String[] args) {
         rootNode.attachChild(compositeNode);
 
     }
-/*
-    public void onAnalog(String name, float value, float tpf) {
-        if (name.equals("MouseMovement")) {
-            float speed = 0.1f;
-            compositeNode.move(value * speed, 0, 0); // Modifie la position de la raquette selon le mouvement horizontal de la souris
-            compositeNode.move(0, -value * speed, 0); // Modifie la position de la raquette selon le mouvement vertical de la souris
-        }
-    }
-*/
 
     public void initWalls(){
         Box wall = new Box(30f, 1.5f, 5f);
@@ -301,16 +278,22 @@ public static void main(String[] args) {
 
     @Override
     public void onAction(String binding, boolean value, float tpf) {
-        if (binding.equals("Left")) {
-            if (value) { left = true; } else { left = false; }
-        } else if (binding.equals("Right")) {
-            if (value) { right = true; } else { right = false; }
-        } else if (binding.equals("Up")) {
-            if (value) { up = true; } else { up = false; }
-        } else if (binding.equals("Down")) {
-            if (value) { down = true; } else { down = false; }
-        } else if (binding.equals("Jump")) {
-            player.jump();
+        switch (binding) {
+            case "Left":
+                left = value;
+                break;
+            case "Right":
+                right = value;
+                break;
+            case "Up":
+                up = value;
+                break;
+            case "Down":
+                down = value;
+                break;
+            case "Jump":
+                player.jump();
+                break;
         }
     }
 }

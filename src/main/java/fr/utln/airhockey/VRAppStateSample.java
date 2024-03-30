@@ -1,6 +1,5 @@
 package fr.utln.airhockey;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Filter;
@@ -15,13 +14,11 @@ import com.jme3.app.VRAppState;
 import com.jme3.app.VRConstants;
 import com.jme3.app.VREnvironment;
 import com.jme3.app.state.AppState;
-import com.jme3.asset.plugins.FileLocator;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.vr.VRInputType;
-import com.jme3.input.vr.openvr.OpenVR;
 import com.jme3.material.Material;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
@@ -60,7 +57,6 @@ public class VRAppStateSample extends SimpleApplication {
     Node mainScene;
     Geometry leftHand, rightHand;
 
-    private float distance  = 100f;
     private float prod      = 0f;
     private float placeRate = 0f;
 
@@ -205,35 +201,25 @@ public class VRAppStateSample extends SimpleApplication {
                 if( name.equals("toggle") ) {
                     vrAppState.getVRGUIManager().positionGui();
                 }
-                if(name.equals("forward")){
-                    if(keyPressed){
-                        moveForward = true;
-                    } else {
-                        moveForward = false;
-                    }
-                } else if(name.equals("back")){
-                    if(keyPressed){
-                        moveBackwards = true;
-                    } else {
-                        moveBackwards = false;
-                    }
-                } else if( name.equals("dumpImages") ) {
-                    //((OpenVR)vrAppState.getVRHardware()).getCompositor().CompositorDumpImages.apply();
-                }else if(name.equals("left")){
-                    if(keyPressed){
-                        rotateLeft = true;
-                    } else {
-                        rotateLeft = false;
-                    }
-                } else if(name.equals("right")){
-                    if(keyPressed){
-                        rotateRight = true;
-                    } else {
-                        rotateRight = false;
-                    }
-                } else if( name.equals("exit") ) {
-                    stop(true);
-                    System.exit(0);
+                switch (name) {
+                    case "forward":
+                        moveForward = keyPressed;
+                        break;
+                    case "back":
+                        moveBackwards = keyPressed;
+                        break;
+                    case "dumpImages":
+                        //((OpenVR)vrAppState.getVRHardware()).getCompositor().CompositorDumpImages.apply();
+                        break;
+                    case "left":
+                        rotateLeft = keyPressed;
+                        break;
+                    case "right":
+                        rotateRight = keyPressed;
+                        break;
+                    case "exit":
+                        stop(true);
+                        System.exit(0);
                 }
 
 
@@ -264,7 +250,7 @@ public class VRAppStateSample extends SimpleApplication {
          }*/
 
         prod+=tpf;
-        distance = 100f * FastMath.sin(prod);
+        float distance = 100f * FastMath.sin(prod);
         boxes.setLocalTranslation(0, 0, 200f+ distance);
 
         if(moveForward){
@@ -357,9 +343,9 @@ public class VRAppStateSample extends SimpleApplication {
 
         Formatter formatter = new Formatter(){
 
-            private final String lineSeparator = System.getProperty("line.separator");
+            private final String lineSeparator = System.lineSeparator();
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
+            final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
 
             @Override
             public String format(LogRecord record) {
@@ -407,11 +393,11 @@ public class VRAppStateSample extends SimpleApplication {
                     if (record.getThrown() == null){
                         return "("+sdf.format(new Date(record.getMillis()))+") "+level+" ["+simpleClassName+"] ["+record.getSourceMethodName()+"] "+message+lineSeparator;
                     } else {
-                        String str = "("+sdf.format(new Date(record.getMillis()))+") "+level+" ["+simpleClassName+"] ["+record.getSourceMethodName()+"] caused by "+message+lineSeparator;
+                        StringBuilder str = new StringBuilder("(" + sdf.format(new Date(record.getMillis())) + ") " + level + " [" + simpleClassName + "] [" + record.getSourceMethodName() + "] caused by " + message + lineSeparator);
 
                         StackTraceElement[] elements = record.getThrown().getStackTrace();
-                        for(int i = 0; i < elements.length; i++){
-                            str += "("+sdf.format(new Date(record.getMillis()))+") "+level+" ["+simpleClassName+"] ["+record.getSourceMethodName()+"] at "+elements[i]+lineSeparator;
+                        for (StackTraceElement element : elements) {
+                            str.append("(").append(sdf.format(new Date(record.getMillis()))).append(") ").append(level).append(" [").append(simpleClassName).append("] [").append(record.getSourceMethodName()).append("] at ").append(element).append(lineSeparator);
                         }
                         return "("+sdf.format(new Date(record.getMillis()))+") "+level+" ["+record.getSourceClassName()+"] ["+record.getSourceMethodName()+"] "+message+lineSeparator+str;
                     }
@@ -421,13 +407,11 @@ public class VRAppStateSample extends SimpleApplication {
             }};
 
         // If the init is forced from a previous configuration, we remove the older handlers.
-        if (log != null){
-            if (log.getHandlers() != null){
-                for(int i = log.getHandlers().length - 1; i >= 0; i--){
-                    log.getHandlers()[i].setFilter(filter);
-                    log.getHandlers()[i].setFormatter(formatter);
-                    log.getHandlers()[i].setLevel(Level.CONFIG);
-                }
+        if (log.getHandlers() != null) {
+            for (int i = log.getHandlers().length - 1; i >= 0; i--) {
+                log.getHandlers()[i].setFilter(filter);
+                log.getHandlers()[i].setFormatter(formatter);
+                log.getHandlers()[i].setLevel(Level.CONFIG);
             }
         }
     }
