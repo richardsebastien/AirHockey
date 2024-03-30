@@ -60,7 +60,7 @@ public class VRAppStateSample extends SimpleApplication {
     private float prod      = 0f;
     private float placeRate = 0f;
 
-    VRAppState vrAppState = null;
+    VRAppState vrAppState;
 
     public VRAppStateSample(AppState... initialStates) {
         super(initialStates);
@@ -90,19 +90,7 @@ public class VRAppStateSample extends SimpleApplication {
         mat.setTexture("ColorMap", noise);
 
         // make the floor according to the size of our play area
-        Geometry floor = new Geometry("floor", new Box(1f, 1f, 1f));
-
-        Vector2f playArea = vrAppState.getVREnvironment().getVRBounds().getPlaySize();
-        if( playArea == null ) {
-            // no play area, use default size & height
-            floor.setLocalScale(2f, 0.5f, 2f);
-            floor.move(0f, -1.5f, 0f);
-        } else {
-            // cube model is actually 2x as big, cut it down to proper playArea size with * 0.5
-            floor.setLocalScale(playArea.x * 0.5f, 0.5f, playArea.y * 0.5f);
-            floor.move(0f, -0.5f, 0f);
-        }
-        floor.setMaterial(mat);
+        Geometry floor = getGeometry();
         rootNode.attachChild(floor);
 
         // hand wands
@@ -158,12 +146,23 @@ public class VRAppStateSample extends SimpleApplication {
 
         // filter test (can be added here like this)
         // but we are going to save them for the F key during runtime
-        /*
-        CartoonSSAO cartfilt = new CartoonSSAO();
-        FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-        fpp.addFilter(cartfilt);
-        viewPort.addProcessor(fpp);
-        */
+    }
+
+    private Geometry getGeometry() {
+        Geometry floor = new Geometry("floor", new Box(1f, 1f, 1f));
+
+        Vector2f playArea = vrAppState.getVREnvironment().getVRBounds().getPlaySize();
+        if( playArea == null ) {
+            // no play area, use default size & height
+            floor.setLocalScale(2f, 0.5f, 2f);
+            floor.move(0f, -1.5f, 0f);
+        } else {
+            // cube model is actually 2x as big, cut it down to proper playArea size with * 0.5
+            floor.setLocalScale(playArea.x * 0.5f, 0.5f, playArea.y * 0.5f);
+            floor.move(0f, -0.5f, 0f);
+        }
+        floor.setMaterial(mat);
+        return floor;
     }
 
 
@@ -180,50 +179,47 @@ public class VRAppStateSample extends SimpleApplication {
         inputManager.addMapping("dumpImages", new KeyTrigger(KeyInput.KEY_I));
         inputManager.addMapping("exit", new KeyTrigger(KeyInput.KEY_ESCAPE));
 
-        ActionListener acl = new ActionListener() {
-
-            public void onAction(String name, boolean keyPressed, float tpf) {
-                if(name.equals("incShift") && keyPressed){
-                    vrAppState.getVRGUIManager().adjustGuiDistance(-0.1f);
-                }else if(name.equals("decShift") && keyPressed){
-                    vrAppState.getVRGUIManager().adjustGuiDistance(0.1f);
-                }else if(name.equals("filter") && keyPressed){
-                    // adding filters in realtime
-                    CartoonSSAO cartfilt = new CartoonSSAO(vrAppState.isInstanceRendering());
-                    FilterPostProcessor fpp = new FilterPostProcessor(getAssetManager());
-                    fpp.addFilter(cartfilt);
-                    getViewPort().addProcessor(fpp);
-                    // filters added to main viewport during runtime,
-                    // move them into VR processing
-                    // (won't do anything if not in VR mode)
-                    vrAppState.moveScreenProcessingToVR();
-                }
-                if( name.equals("toggle") ) {
-                    vrAppState.getVRGUIManager().positionGui();
-                }
-                switch (name) {
-                    case "forward":
-                        moveForward = keyPressed;
-                        break;
-                    case "back":
-                        moveBackwards = keyPressed;
-                        break;
-                    case "dumpImages":
-                        //((OpenVR)vrAppState.getVRHardware()).getCompositor().CompositorDumpImages.apply();
-                        break;
-                    case "left":
-                        rotateLeft = keyPressed;
-                        break;
-                    case "right":
-                        rotateRight = keyPressed;
-                        break;
-                    case "exit":
-                        stop(true);
-                        System.exit(0);
-                }
-
-
+        ActionListener acl = (name, keyPressed, tpf) -> {
+            if(name.equals("incShift") && keyPressed){
+                vrAppState.getVRGUIManager().adjustGuiDistance(-0.1f);
+            }else if(name.equals("decShift") && keyPressed){
+                vrAppState.getVRGUIManager().adjustGuiDistance(0.1f);
+            }else if(name.equals("filter") && keyPressed){
+                // adding filters in realtime
+                CartoonSSAO cartfilt = new CartoonSSAO(vrAppState.isInstanceRendering());
+                FilterPostProcessor fpp = new FilterPostProcessor(getAssetManager());
+                fpp.addFilter(cartfilt);
+                getViewPort().addProcessor(fpp);
+                // filters added to main viewport during runtime,
+                // move them into VR processing
+                // (won't do anything if not in VR mode)
+                vrAppState.moveScreenProcessingToVR();
             }
+            if( name.equals("toggle") ) {
+                vrAppState.getVRGUIManager().positionGui();
+            }
+            switch (name) {
+                case "forward":
+                    moveForward = keyPressed;
+                    break;
+                case "back":
+                    moveBackwards = keyPressed;
+                    break;
+                case "dumpImages":
+                    //((OpenVR)vrAppState.getVRHardware()).getCompositor().CompositorDumpImages.apply();
+                    break;
+                case "left":
+                    rotateLeft = keyPressed;
+                    break;
+                case "right":
+                    rotateRight = keyPressed;
+                    break;
+                case "exit":
+                    stop(true);
+                    System.exit(0);
+            }
+
+
         };
         inputManager.addListener(acl, "forward");
         inputManager.addListener(acl, "back");
@@ -241,13 +237,6 @@ public class VRAppStateSample extends SimpleApplication {
     public void simpleUpdate(float tpf){
 
         //FPS test
-         /*tpfAdder += tpf;
-         tpfCount++;
-         if( tpfCount == 60 ) {
-             System.out.println("FPS: " + Float.toString(1f / (tpfAdder / tpfCount)));
-             tpfCount = 0;
-             tpfAdder = 0f;
-         }*/
 
         prod+=tpf;
         float distance = 100f * FastMath.sin(prod);
@@ -286,13 +275,7 @@ public class VRAppStateSample extends SimpleApplication {
                 addBox(v, q, 0.1f);
                 vrAppState.getVRinput().triggerHapticPulse(index, 0.1f);
             }
-            // print out all of the known information about the controllers here
-             /*for(int i=0;i<VRInput.getRawControllerState(index).rAxis.length;i++) {
-                 VRControllerAxis_t cs = VRInput.getRawControllerState(index).rAxis[i];
-                 System.out.println("Controller#" + Integer.toString(index) + ", Axis#" + Integer.toString(i) + " X: " + Float.toString(cs.x) + ", Y: " + Float.toString(cs.y));
-             }
-             System.out.println("Button press: " + Long.toString(VRInput.getRawControllerState(index).ulButtonPressed.longValue()) + ", touch: " + Long.toString(VRInput.getRawControllerState(index).ulButtonTouched.longValue()));
-             */
+            // print out all the known information about the controllers here
         } else {
             geo.setCullHint(CullHint.Always); // hide it
         }
@@ -335,11 +318,7 @@ public class VRAppStateSample extends SimpleApplication {
         Logger.getLogger("de.lessvoid.nifty").setLevel(Level.SEVERE);
         Logger.getLogger("NiftyInputEventHandlingLog").setLevel(Level.SEVERE);
 
-        Filter filter = new Filter(){
-            public boolean isLoggable(LogRecord record) {
-                return true;
-            }
-        };
+        Filter filter = record -> true;
 
         Formatter formatter = new Formatter(){
 
@@ -363,24 +342,7 @@ public class VRAppStateSample extends SimpleApplication {
                         simpleClassName = "Unknow,";
                     }
 
-                    String level =  "";
-                    if (record.getLevel().equals(Level.FINEST)){
-                        level = "FINEST ";
-                    } else if (record.getLevel().equals(Level.FINER)){
-                        level = "FINER  ";
-                    } else if (record.getLevel().equals(Level.FINE)){
-                        level = "FINE   ";
-                    } else if (record.getLevel().equals(Level.CONFIG)){
-                        level = "CONFIG ";
-                    } else if (record.getLevel().equals(Level.INFO)){
-                        level = "INFO   ";
-                    } else if (record.getLevel().equals(Level.WARNING)){
-                        level = "WARNING";
-                    } else if (record.getLevel().equals(Level.SEVERE)){
-                        level = "SEVERE ";
-                    } else {
-                        level = "???????";
-                    }
+                    String level = getString(record);
 
                     // Use record parameters
                     String message = record.getMessage();
@@ -404,7 +366,30 @@ public class VRAppStateSample extends SimpleApplication {
                 } else {
                     return null;
                 }
-            }};
+            }
+
+            private String getString(LogRecord record) {
+                String level;
+                if (record.getLevel().equals(Level.FINEST)){
+                    level = "FINEST ";
+                } else if (record.getLevel().equals(Level.FINER)){
+                    level = "FINER  ";
+                } else if (record.getLevel().equals(Level.FINE)){
+                    level = "FINE   ";
+                } else if (record.getLevel().equals(Level.CONFIG)){
+                    level = "CONFIG ";
+                } else if (record.getLevel().equals(Level.INFO)){
+                    level = "INFO   ";
+                } else if (record.getLevel().equals(Level.WARNING)){
+                    level = "WARNING";
+                } else if (record.getLevel().equals(Level.SEVERE)){
+                    level = "SEVERE ";
+                } else {
+                    level = "???????";
+                }
+                return level;
+            }
+        };
 
         // If the init is forced from a previous configuration, we remove the older handlers.
         if (log.getHandlers() != null) {
@@ -430,30 +415,13 @@ public class VRAppStateSample extends SimpleApplication {
      */
     public static void main(String[] args){
 
-        // Init the log to display all the configuration informations.
+        // Init the log to display all the configuration information.
         // This is not needed within final application.
         initLog();
 
         // Prepare settings for VR rendering.
         // It is recommended to share same settings between the VR app state and the application.
-        AppSettings settings = new AppSettings(true);
-
-        //settings.put(VRConstants.SETTING_VRAPI, VRConstants.SETTING_VRAPI_OPENVR_VALUE); // The VR api to use (need to be present on the system)
-        //settings.put(VRConstants.SETTING_VRAPI, VRConstants.SETTING_VRAPI_OSVR_VALUE); // The VR api to use (need to be present on the system)
-        settings.put(VRConstants.SETTING_VRAPI, SETTING_VRAPI_OPENVR_LWJGL_VALUE); // The VR api to use (need to be present on the system)
-
-        settings.put(VRConstants.SETTING_DISABLE_VR, false);          // Enable VR
-        settings.put(VRConstants.SETTING_ENABLE_MIRROR_WINDOW, true); // Enable Mirror rendering oh the screen (disable to be faster)
-        settings.put(VRConstants.SETTING_VR_FORCE, false);            // Not forcing VR rendering if no VR system is found.
-        //settings.put(VRConstants.SETTING_GUI_CURVED_SURFACE, true);   // Curve the mesh that is displaying the GUI
-        settings.put(VRConstants.SETTING_FLIP_EYES, false);           // Is the HMD eyes have to be inverted.
-        settings.put(VRConstants.SETTING_NO_GUI, false);              // enable gui.
-        //settings.put(VRConstants.SETTING_GUI_OVERDRAW, true);         // show gui even if it is behind things.
-
-        settings.put(VRConstants.SETTING_DEFAULT_FOV, 108f);          // The default ield Of View (FOV)
-        settings.put(VRConstants.SETTING_DEFAULT_ASPECT_RATIO, 1f);   // The default aspect ratio.
-
-        settings.setRenderer(AppSettings.LWJGL_OPENGL3); // Setting the renderer. OpenGL 3 is needed if you're using Instance Rendering.
+        AppSettings settings = getAppSettings();
 
         // The VR Environment.
         // This object is the interface between the JMonkey world (Application, AppState, ...) and the VR specific stuff.
@@ -480,5 +448,27 @@ public class VRAppStateSample extends SimpleApplication {
         } else {
             logger.severe("Cannot start VR sample application as VR system is not initialized (see log for details)");
         }
+    }
+
+    private static AppSettings getAppSettings() {
+        AppSettings settings = new AppSettings(true);
+
+        //settings.put(VRConstants.SETTING_VRAPI, VRConstants.SETTING_VRAPI_OPENVR_VALUE); // The VR api to use (need to be present on the system)
+        //settings.put(VRConstants.SETTING_VRAPI, VRConstants.SETTING_VRAPI_OSVR_VALUE); // The VR api to use (need to be present on the system)
+        settings.put(VRConstants.SETTING_VRAPI, SETTING_VRAPI_OPENVR_LWJGL_VALUE); // The VR api to use (need to be present on the system)
+
+        settings.put(VRConstants.SETTING_DISABLE_VR, false);          // Enable VR
+        settings.put(VRConstants.SETTING_ENABLE_MIRROR_WINDOW, true); // Enable Mirror rendering oh the screen (disable to be faster)
+        settings.put(VRConstants.SETTING_VR_FORCE, false);            // Not forcing VR rendering if no VR system is found.
+        //settings.put(VRConstants.SETTING_GUI_CURVED_SURFACE, true);   // Curve the mesh that is displaying the GUI
+        settings.put(VRConstants.SETTING_FLIP_EYES, false);           // Is the HMD eyes have to be inverted.
+        settings.put(VRConstants.SETTING_NO_GUI, false);              // enable gui.
+        //settings.put(VRConstants.SETTING_GUI_OVERDRAW, true);         // show gui even if it is behind things.
+
+        settings.put(VRConstants.SETTING_DEFAULT_FOV, 108f);          // The default ield Of View (FOV)
+        settings.put(VRConstants.SETTING_DEFAULT_ASPECT_RATIO, 1f);   // The default aspect ratio.
+
+        settings.setRenderer(AppSettings.LWJGL_OPENGL3); // Setting the renderer. OpenGL 3 is needed if you're using Instance Rendering.
+        return settings;
     }
 }
