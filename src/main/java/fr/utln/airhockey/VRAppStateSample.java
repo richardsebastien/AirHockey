@@ -468,7 +468,7 @@ public class VRAppStateSample extends SimpleApplication {
         settings.put(VRConstants.SETTING_DEFAULT_FOV, 108f);          // The default ield Of View (FOV)
         settings.put(VRConstants.SETTING_DEFAULT_ASPECT_RATIO, 1f);   // The default aspect ratio.
 
-        settings.setRenderer(AppSettings.LWJGL_OPENGL3); // Setting the renderer. OpenGL 3 is needed if you're using Instance Rendering.
+        settings.setRenderer(AppSettings.LWJGL_OPENGL32); // Setting the renderer. OpenGL 3 is needed if you're using Instance Rendering.
         return settings;
     }
 }
