@@ -125,6 +125,18 @@
       <version>${jme3_v}</version>
     </dependency>
 
+    <dependency>
+      <groupId>${jme3_g}</groupId>
+      <artifactId>jme3-testdata</artifactId>
+      <version>${jme3_v}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.nifty-gui</groupId>
+      <artifactId>nifty</artifactId>
+      <version>1.4.3</version>
+    </dependency>
+
 	
   </dependencies>
   

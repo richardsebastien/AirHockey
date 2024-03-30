@@ -13,7 +13,6 @@ import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
-import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.material.Material;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
@@ -23,9 +22,9 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.texture.Texture;
 
-public class main extends SimpleApplication implements ActionListener {
+public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
-        main app = new main();
+        Main app = new Main();
         app.start();
     }
 
@@ -53,6 +52,9 @@ public static void main(String[] args) {
 
     @Override
     public void simpleInitApp() {
+        StartScreenState startScreenState = new StartScreenState();
+        stateManager.attach(startScreenState);
+
         /** Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
@@ -82,7 +84,6 @@ public static void main(String[] args) {
 
 
 
-
     }
 
     public void initMaterials() {
@@ -99,7 +100,7 @@ public static void main(String[] args) {
         stone_mat.setTexture("ColorMap", tex2);
 
         floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key3 = new TextureKey("Textures/Terrain/Pond/Pond.jpg");
+        TextureKey key3 = new TextureKey("terrain.png");
         key3.setGenerateMips(true);
         Texture tex3 = assetManager.loadTexture(key3);
         tex3.setWrap(Texture.WrapMode.Repeat);
