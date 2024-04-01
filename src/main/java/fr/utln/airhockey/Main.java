@@ -1,6 +1,6 @@
 package fr.utln.airhockey;
 
-import com.jme3.app.SimpleApplication;
+import com.jme3.app.*;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
@@ -21,12 +21,33 @@ import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
 
 public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
-        Main app = new Main();
+    AppSettings settings = new AppSettings(true);
+    settings.put(VRConstants.SETTING_VRAPI, VRConstants.SETTING_VRAPI_OPENVR_LWJGL_VALUE);
+    settings.put(VRConstants.SETTING_ENABLE_MIRROR_WINDOW, true);
+
+    VREnvironment env = new VREnvironment(settings);
+    env.initialize();
+
+    // Checking if the VR environment is well initialized
+    // (access to the underlying VR system is effective, VR devices are detected).
+    if (env.isInitialized()){
+        VRAppState vrAppState = new VRAppState(settings, env);
+        vrAppState.setMirrorWindowSize(1024, 800);
+        Main app = new Main(vrAppState);
+        app.setLostFocusBehavior(LostFocusBehavior.Disabled);
+        app.setSettings(settings);
+        app.setShowSettings(false);
         app.start();
+    }
+    }
+
+    public Main(VRAppState appStates) {
+        super(appStates);
     }
 
     /** Prepare the Physics Application State (jBullet) */
@@ -55,7 +76,7 @@ public static void main(String[] args) {
 
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-        flyCam.setEnabled(false);
+        //flyCam.setEnabled(false);
 
 
 
@@ -96,7 +117,7 @@ public static void main(String[] args) {
         stone_mat.setTexture("ColorMap", tex2);
 
         floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key3 = new TextureKey("terrain.png");
+        TextureKey key3 = new TextureKey("Textures/Terrain/Rock/Rock.PNG");
         key3.setGenerateMips(true);
         Texture tex3 = assetManager.loadTexture(key3);
         tex3.setWrap(Texture.WrapMode.Repeat);
