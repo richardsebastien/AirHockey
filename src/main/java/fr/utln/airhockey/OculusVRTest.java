@@ -3,11 +3,10 @@ package fr.utln.airhockey;
 import com.jme3.app.*;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.font.BitmapCharacter;
-import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.vr.VRInputAPI;
 import com.jme3.input.vr.VRInputType;
+import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Quaternion;
@@ -21,10 +20,15 @@ import com.jme3.system.AppSettings;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class OculusVRTest extends SimpleApplication {
     private BulletAppState bulletAppState;
     private int score = 0;
+    private Timer timer;
+    private BitmapText scoreText;
+    private BitmapText timeText;
 
     public static void main(String[] args) {
         AppSettings settings = new AppSettings(true);
@@ -78,13 +82,50 @@ public class OculusVRTest extends SimpleApplication {
         boxControl.setLinearVelocity(Vector3f.ZERO);
 
         //Affichage du score
-        BitmapText scoreText = new BitmapText(guiFont, false);
+        scoreText = new BitmapText(guiFont, false);
         scoreText.setName("scoreText");
         scoreText.setSize(guiFont.getCharSet().getRenderedSize());
         scoreText.setColor(ColorRGBA.White);
         scoreText.setText("Score: " + score);
-        scoreText.setLocalTranslation(0, scoreText.getLineHeight(), 0);
-        guiNode.attachChild(scoreText);
+        scoreText.setLocalTranslation(-50, 100, -200);
+        rootNode.attachChild(scoreText);
+
+        // Créer une nouvelle instance de Timer
+        timer = new Timer();
+
+        // Créer un BitmapText pour le temps restant
+        timeText = new BitmapText(guiFont, false);
+        timeText.setName("timeText");
+        timeText.setSize(guiFont.getCharSet().getRenderedSize());
+        timeText.setColor(ColorRGBA.White);
+        timeText.setText("Temps restant : 30");
+        timeText.setLocalTranslation(-50, 150, -200); // Ajustez la position comme nécessaire
+        rootNode.attachChild(timeText);
+
+        // Créer une nouvelle instance de TimerTask
+        TimerTask countdownTask = new TimerTask() {
+            int remainingSeconds = 30;
+
+            @Override
+            public void run() {
+                // Ce code sera exécuté chaque seconde
+                remainingSeconds--;
+                timeText.setText("Temps restant : " + remainingSeconds);
+
+                // Si le temps est écoulé, afficher le score final
+                if (remainingSeconds <= 0) {
+                    timeText.setText("Temps écoulé ! Score final : " + score+" \n Appuyez sur 'Grip' pour recommencer une partie");
+                    score=0;
+                    scoreText.setText("");
+                    timer.cancel(); // Arrêter le timer
+                }
+            }
+        };
+
+        // Démarrer le timer pour qu'il se termine après 30 secondes (30000 millisecondes)
+        // et exécute countdownTask chaque seconde (1000 millisecondes)
+        timer.scheduleAtFixedRate(countdownTask, 0, 1000);
+
 
         // Add a collision listener to the bulletAppState
         bulletAppState.getPhysicsSpace().addCollisionListener(event -> {
@@ -123,10 +164,22 @@ public class OculusVRTest extends SimpleApplication {
                     return null;
                 });
 
+            }else if (("resetBox".equals(event.getNodeA().getName()) && "Bullet".equals(event.getNodeB().getName()))
+                    || ("Bullet".equals(event.getNodeA().getName()) && "resetBox".equals(event.getNodeB().getName()))) {
+                score = 0;
+                scoreText.setText("Score: " + score);
             }
         });
 
+        // Ajouter une source de lumière directionnelle
+        DirectionalLight sun = new DirectionalLight();
+        sun.setDirection(new Vector3f(0,0,-1).normalizeLocal());
+        sun.setColor(ColorRGBA.White);
+        rootNode.addLight(sun);
+
         rootNode.attachChild(geom);
+        viewPort.setClearColor(true);
+        viewPort.setBackgroundColor(ColorRGBA.Black);
     }
 
     private Geometry createLine(Vector3f start, Vector3f end) {
@@ -167,25 +220,67 @@ public class OculusVRTest extends SimpleApplication {
                 geometry.setLocalRotation(rotation);
                 boolean grip = vrInput.isButtonDown(i, VRInputType.ViveGripButton); //<--Don't worry about the way it says "Vive", anything that supports SteamVR/OpenVR will work with this
                 boolean trigger = vrInput.wasButtonPressedSinceLastCall(i, VRInputType.ViveTriggerAxis);
-
+                boolean abutton = vrInput.isButtonDown(i, VRInputType.OculusBottomButton); //A button on Oculus Touch controllers (Xbox A button on Vive controllers
                 if (grip){
-                    geometry.getMaterial().setColor("Color", ColorRGBA.Green);
+                    // Réinitialiser le score
+                    score = 0;
+                    scoreText.setText("Score: " + score);
+
+                    // Annuler le timer actuel
+                    timer.cancel();
+
+                    // Créer une nouvelle instance de Timer
+                    timer = new Timer();
+
+                    // Créer une nouvelle instance de TimerTask
+                    TimerTask countdownTask = new TimerTask() {
+                        int remainingSeconds = 30;
+
+                        @Override
+                        public void run() {
+                            // Ce code sera exécuté chaque seconde
+                            remainingSeconds--;
+                            timeText.setText("Temps restant : " + remainingSeconds);
+
+                            // Si le temps est écoulé, afficher le score final
+                            if (remainingSeconds <= 0) {
+                                timeText.setText("Score final : " + score);
+                                timer.cancel(); // Arrêter le timer
+                            }
+                        }
+                    };
+
+                    // Démarrer le timer pour qu'il se termine après 30 secondes (30000 millisecondes)
+                    // et exécute countdownTask chaque seconde (1000 millisecondes)
+                    timer.scheduleAtFixedRate(countdownTask, 0, 1000);
+
                 }else if (trigger){
-                    vrInput.triggerHapticPulse(i, 0.5f);
+                    vrInput.triggerHapticPulse(i, 0.8f);
                     geometry.getMaterial().setColor("Color", ColorRGBA.Yellow);
-                    // Create a new sphere (the bullet)
+                    // Créer une nouvelle sphère (la balle)
                     Sphere sphere = new Sphere(32, 32, 0.1f);
                     Geometry bullet = new Geometry("Bullet", sphere);
 
-                    // Set the bullet's material to pink
-                    Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-                    mat.setColor("Color", ColorRGBA.Cyan);
+                    // Créer un nouveau matériau éclairé
+                    Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+
+                    // Définir la couleur diffuse (la couleur principale de la balle)
+                    mat.setColor("Diffuse", ColorRGBA.Cyan);
+
+                    // Définir la couleur spéculaire (la couleur de la brillance) et la brillance
+                    mat.setColor("Specular", ColorRGBA.White);
+                    mat.setFloat("Shininess", 128f);  // [1,128] plus c'est élevé, plus c'est brillant
+
+                    // Activer l'utilisation de la couleur diffuse dans l'éclairage
+                    mat.setBoolean("UseMaterialColors", true);
+
+                    // Définir le matériau de la balle
                     bullet.setMaterial(mat);
 
-                    // Position the bullet at the controller's position
+                    // Positionner la balle à la position du contrôleur
                     bullet.setLocalTranslation(position);
 
-                    // Add the bullet to the scene
+                    // Ajouter la balle à la scène
                     rootNode.attachChild(bullet);
 
                     // Create a control for the bullet with a mass of 1.0f
@@ -199,9 +294,43 @@ public class OculusVRTest extends SimpleApplication {
 
                     // Set the bullet's velocity in the direction the controller is pointing
                     Vector3f direction = rotation.mult(Vector3f.UNIT_Z);
-                    bulletControl.setLinearVelocity(direction.mult(50f));
+                    bulletControl.setLinearVelocity(direction.mult(75f));
 
-                }else{
+                }else if(abutton){
+                    System.out.println("A button pressed");
+                    // Réinitialiser le score
+                    score = 0;
+                    scoreText.setText("Score: " + score);
+
+                    // Annuler le timer actuel
+                    timer.cancel();
+
+                    // Créer une nouvelle instance de Timer
+                    timer = new Timer();
+
+                    // Créer une nouvelle instance de TimerTask
+                    TimerTask countdownTask = new TimerTask() {
+                        int remainingSeconds = 30;
+
+                        @Override
+                        public void run() {
+                            // Ce code sera exécuté chaque seconde
+                            remainingSeconds--;
+                            timeText.setText("Temps restant : " + remainingSeconds);
+
+                            // Si le temps est écoulé, afficher le score final
+                            if (remainingSeconds <= 0) {
+                                timeText.setText("Score final : " + score);
+                                timer.cancel(); // Arrêter le timer
+                            }
+                        }
+                    };
+
+                    // Démarrer le timer pour qu'il se termine après 30 secondes (30000 millisecondes)
+                    // et exécute countdownTask chaque seconde (1000 millisecondes)
+                    timer.scheduleAtFixedRate(countdownTask, 0, 1000);
+                }
+                else{
                     geometry.getMaterial().setColor("Color", ColorRGBA.Red);
                 }
 
