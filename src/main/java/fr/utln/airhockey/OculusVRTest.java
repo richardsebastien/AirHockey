@@ -82,7 +82,7 @@ public class OculusVRTest extends SimpleApplication {
         boxControl.setLinearVelocity(Vector3f.ZERO);
 
         //Affichage du score
-        scoreText = new BitmapText(guiFont, false);
+        scoreText = new BitmapText(guiFont);
         scoreText.setName("scoreText");
         scoreText.setSize(guiFont.getCharSet().getRenderedSize());
         scoreText.setColor(ColorRGBA.White);
@@ -90,11 +90,8 @@ public class OculusVRTest extends SimpleApplication {
         scoreText.setLocalTranslation(-50, 100, -200);
         rootNode.attachChild(scoreText);
 
-        // Créer une nouvelle instance de Timer
-        timer = new Timer();
-
         // Créer un BitmapText pour le temps restant
-        timeText = new BitmapText(guiFont, false);
+        timeText = new BitmapText(guiFont);
         timeText.setName("timeText");
         timeText.setSize(guiFont.getCharSet().getRenderedSize());
         timeText.setColor(ColorRGBA.White);
@@ -102,25 +99,13 @@ public class OculusVRTest extends SimpleApplication {
         timeText.setLocalTranslation(-50, 150, -200); // Ajustez la position comme nécessaire
         rootNode.attachChild(timeText);
 
+        // Annuler le timer actuel
+        if (timer != null) {
+            timer.cancel();
+        }
+
         // Créer une nouvelle instance de TimerTask
-        TimerTask countdownTask = new TimerTask() {
-            int remainingSeconds = 30;
-
-            @Override
-            public void run() {
-                // Ce code sera exécuté chaque seconde
-                remainingSeconds--;
-                timeText.setText("Temps restant : " + remainingSeconds);
-
-                // Si le temps est écoulé, afficher le score final
-                if (remainingSeconds <= 0) {
-                    timeText.setText("Temps écoulé ! Score final : " + score+" \n Appuyez sur 'Grip' pour recommencer une partie");
-                    score=0;
-                    scoreText.setText("");
-                    timer.cancel(); // Arrêter le timer
-                }
-            }
-        };
+        TimerTask countdownTask = newTimer();
 
         // Démarrer le timer pour qu'il se termine après 30 secondes (30000 millisecondes)
         // et exécute countdownTask chaque seconde (1000 millisecondes)
@@ -138,14 +123,13 @@ public class OculusVRTest extends SimpleApplication {
                 RigidBodyControl hitBoxControl;
                 if ("Box".equals(event.getNodeA().getName())) {
                     box = (Geometry) event.getNodeA();
-                    hitBoxControl = box.getControl(RigidBodyControl.class);
 
 
                 } else {
                     box = (Geometry) event.getNodeB();
-                    hitBoxControl = box.getControl(RigidBodyControl.class);
 
                 }
+                hitBoxControl = box.getControl(RigidBodyControl.class);
                 // Set the box to kinematic
                 hitBoxControl.setKinematic(true);
 
@@ -216,7 +200,7 @@ public class OculusVRTest extends SimpleApplication {
                 Quaternion rotation = vrInput.getFinalObserverRotation(i);
 
                 Geometry geometry = handGeometries.get(i);
-                geometry.setLocalTranslation(position);
+                geometry.setLocalTranslation(position.add(rotation.mult(Vector3f.UNIT_Y.negate()).multLocal(0.1f)));
                 geometry.setLocalRotation(rotation);
                 boolean grip = vrInput.isButtonDown(i, VRInputType.ViveGripButton); //<--Don't worry about the way it says "Vive", anything that supports SteamVR/OpenVR will work with this
                 boolean trigger = vrInput.wasButtonPressedSinceLastCall(i, VRInputType.ViveTriggerAxis);
@@ -227,28 +211,15 @@ public class OculusVRTest extends SimpleApplication {
                     scoreText.setText("Score: " + score);
 
                     // Annuler le timer actuel
-                    timer.cancel();
+                    if (timer != null) {
+                        timer.cancel();
+                    }
 
                     // Créer une nouvelle instance de Timer
                     timer = new Timer();
 
                     // Créer une nouvelle instance de TimerTask
-                    TimerTask countdownTask = new TimerTask() {
-                        int remainingSeconds = 30;
-
-                        @Override
-                        public void run() {
-                            // Ce code sera exécuté chaque seconde
-                            remainingSeconds--;
-                            timeText.setText("Temps restant : " + remainingSeconds);
-
-                            // Si le temps est écoulé, afficher le score final
-                            if (remainingSeconds <= 0) {
-                                timeText.setText("Score final : " + score);
-                                timer.cancel(); // Arrêter le timer
-                            }
-                        }
-                    };
+                    TimerTask countdownTask = newTimer();
 
                     // Démarrer le timer pour qu'il se termine après 30 secondes (30000 millisecondes)
                     // et exécute countdownTask chaque seconde (1000 millisecondes)
@@ -293,7 +264,7 @@ public class OculusVRTest extends SimpleApplication {
                     bulletAppState.getPhysicsSpace().add(bulletControl);
 
                     // Set the bullet's velocity in the direction the controller is pointing
-                    Vector3f direction = rotation.mult(Vector3f.UNIT_Z);
+                    Vector3f direction = rotation.mult(Vector3f.UNIT_Y.negate());
                     bulletControl.setLinearVelocity(direction.mult(75f));
 
                 }else if(abutton){
@@ -303,28 +274,12 @@ public class OculusVRTest extends SimpleApplication {
                     scoreText.setText("Score: " + score);
 
                     // Annuler le timer actuel
-                    timer.cancel();
-
-                    // Créer une nouvelle instance de Timer
-                    timer = new Timer();
+                    if (timer != null) {
+                        timer.cancel();
+                    }
 
                     // Créer une nouvelle instance de TimerTask
-                    TimerTask countdownTask = new TimerTask() {
-                        int remainingSeconds = 30;
-
-                        @Override
-                        public void run() {
-                            // Ce code sera exécuté chaque seconde
-                            remainingSeconds--;
-                            timeText.setText("Temps restant : " + remainingSeconds);
-
-                            // Si le temps est écoulé, afficher le score final
-                            if (remainingSeconds <= 0) {
-                                timeText.setText("Score final : " + score);
-                                timer.cancel(); // Arrêter le timer
-                            }
-                        }
-                    };
+                    TimerTask countdownTask = newTimer();
 
                     // Démarrer le timer pour qu'il se termine après 30 secondes (30000 millisecondes)
                     // et exécute countdownTask chaque seconde (1000 millisecondes)
@@ -340,9 +295,11 @@ public class OculusVRTest extends SimpleApplication {
                 }
 
                 // Create a new line from the controller's position in the direction the controller is pointing
-                Vector3f direction = rotation.mult(Vector3f.UNIT_Z);
-                Vector3f end = position.add(direction.mult(10f)); // The line will be 10 units long
+                Vector3f direction = rotation.mult(Vector3f.UNIT_Y.negate());
+                Vector3f end = position.add(direction.mult(10f)); // La ligne sera de 10 unités de long
                 Geometry line = createLine(position, end);
+
+
 
                 // Add the line to the scene
                 rootNode.attachChild(line);
@@ -353,6 +310,32 @@ public class OculusVRTest extends SimpleApplication {
 
             }
         }
+    }
+
+    public TimerTask newTimer() {
+        // Créer une nouvelle instance de Timer
+        timer = new Timer();
+
+        // Créer une nouvelle instance de TimerTask
+
+        return new TimerTask() {
+            int remainingSeconds = 30;
+
+            @Override
+            public void run() {
+                // Ce code sera exécuté chaque seconde
+                remainingSeconds--;
+                timeText.setText("Temps restant : " + remainingSeconds);
+
+                // Si le temps est écoulé, afficher le score final
+                if (remainingSeconds <= 0) {
+                    timeText.setText("Temps écoulé ! Score final : " + score+" \n Appuyez sur 'Grip' pour recommencer une partie");
+                    score=0;
+                    scoreText.setText("");
+                    timer.cancel(); // Arrêter le timer
+                }
+            }
+        };
     }
 
     @Override

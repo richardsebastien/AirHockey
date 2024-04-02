@@ -1,6 +1,7 @@
 package fr.utln.airhockey;
 
 import com.jme3.app.Application;
+import com.jme3.app.VRConstants;
 import com.jme3.app.state.BaseAppState;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import de.lessvoid.nifty.Nifty;
