@@ -1,11 +1,9 @@
 package fr.utln.airhockey;
 
 import com.jme3.app.Application;
-import com.jme3.app.VRConstants;
 import com.jme3.app.state.BaseAppState;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import de.lessvoid.nifty.Nifty;
-import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.LayerBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.ScreenBuilder;
@@ -137,19 +135,20 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     }
 
 
+    @SuppressWarnings({"unused", "RedundantCast"})
     public void quitGame() {
         // Add code to quit game
-        ((MainStart) getApplication()).stop();;
+        ((MainStart) getApplication()).stop();
     }
-
+    @SuppressWarnings("unused")
     public void startGame1vsIA() {
         // Add code to start game
     }
-
+    @SuppressWarnings("unused")
     public void startGame1vs1() {
         // Add code to start game
     }
-
+    @SuppressWarnings("unused")
     public void startGameNetwork() {
         // Add code to start game
     }
