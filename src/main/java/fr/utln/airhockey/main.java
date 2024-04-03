@@ -2,18 +2,13 @@ package fr.utln.airhockey;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
-import com.jme3.bullet.collision.PhysicsCollisionEvent;
-import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.collision.shapes.*;
-import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.MouseAxisTrigger;
-import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.material.Material;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
@@ -23,6 +18,9 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.texture.Texture;
 
+import java.util.Currency;
+
+
 public class main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
         main app = new main();
@@ -31,10 +29,10 @@ public static void main(String[] args) {
 
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
-    private CharacterControl player;
+    private Node player;
 
     final private Vector3f walkDirection = new Vector3f();
-    private boolean left = false, right = false, up = false, down = false;
+    private boolean left = false, right = false, up = false, down = false, click = false;
 
     final private Vector3f camDir = new Vector3f();
     final private Vector3f camLeft = new Vector3f();
@@ -45,6 +43,8 @@ public static void main(String[] args) {
 
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
+    private Boolean isRunning = true;
+    private Vector2f lastCursorPosition = new Vector2f();
 
     static{
         floor = new Box(30f, 0.1f, 15f);
@@ -60,25 +60,26 @@ public static void main(String[] args) {
 
 
 
+
         initMaterials();
         initWalls();
         initFloor();
         initPalet();
-        initRaquette();
+        player = initRaquette();
         setUpKeys();
 
         /** Configure cam to look at scene */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
-        player = new CharacterControl(capsuleShape, 0.05f);
-        player.setJumpSpeed(20);
-        player.setFallSpeed(30);
-        player.setGravity(0);
-        player.setPhysicsLocation(new Vector3f(0, 75, 0));
+        //player = new CharacterControl(capsuleShape, 0.05f);
+        //player.setJumpSpeed(20);
+        //player.setFallSpeed(30);
+        //player.setGravity(0);
+        //player.setPhysicsLocation(new Vector3f(0, 75, 0));
 
 
-        bulletAppState.getPhysicsSpace().add(player);
+        //bulletAppState.getPhysicsSpace().add(player);
 
 
 
@@ -114,13 +115,12 @@ public static void main(String[] args) {
         boolean closed = true; // Le cylindre est fermé à une extrémité
 
         Geometry geom = new Geometry("Cylinder", new Cylinder( axialSamples, radialSamples, radius, height, closed));
-// Créer un matériau pour le cylindre (par exemple, rouge)
+        // Créer un matériau pour le cylindre (par exemple, rouge)
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
 
         geom.rotate(FastMath.HALF_PI, 0, 0);
         mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
         geom.setMaterial(mat);
-        geom.setLocalTranslation(0, 3, 5);
         geom.setMaterial(mat);                   // set the cube's material
 
 
@@ -135,7 +135,7 @@ public static void main(String[] args) {
         box_phy.setRestitution(1.0f);
         box_phy.setFriction(0f);
 
-        bulletAppState.getPhysicsSpace().addCollisionListener(new PhysicsCollisionListener() {
+        /*bulletAppState.getPhysicsSpace().addCollisionListener(new PhysicsCollisionListener() {
             @Override
             public void collision(PhysicsCollisionEvent event) {
                 if (event.getObjectA() == player && event.getObjectB() == box_phy ||
@@ -147,11 +147,11 @@ public static void main(String[] args) {
                 }
             }
         });
-
+*/
         rootNode.attachChild(geom);
     }
 
-    public void initRaquette(){
+    public Node initRaquette(){
 
         float cylinderHeight = 1.5f;
         float sphereRadius = 0.5f;
@@ -179,20 +179,27 @@ public static void main(String[] args) {
         cylinderGeom.setLocalTranslation(0, 0f, 0);
         sphereGeom.setLocalTranslation(0, 1.2f, 0f);
         cylinderGeom.rotate(FastMath.HALF_PI, 0, 0);
-        //cylinderGeom.move(4f, 4f, 4f);
-        //sphereGeom.move(4f, 4f, 4f);
+
 
         RigidBodyControl object_phy = new RigidBodyControl(0.0f);
-        //compositeNode.addControl(object_phy);
-        //bulletAppState.getPhysicsSpace().add(object_phy);
+
 
         Node compositeNode = new Node("CompositeObject");
         compositeNode.attachChild(cylinderGeom);
         compositeNode.attachChild(sphereGeom);
         compositeNode.move(4f, 4f, 4f);
 
+        RigidBodyControl box_phy = new RigidBodyControl(1f);
+        /** Add physical brick to physics space. */
+        compositeNode.addControl(box_phy);
+        bulletAppState.getPhysicsSpace().add(box_phy);
+        box_phy.setAngularFactor(0f);
+        box_phy.setRestitution(1.0f);
+        box_phy.setFriction(1f);
+
         // Ajouter le nœud composite à la scène
         rootNode.attachChild(compositeNode);
+        return compositeNode;
 
     }
 /*
@@ -267,35 +274,34 @@ public static void main(String[] args) {
 
     private void setUpKeys() {
         inputManager.addMapping("Left", new MouseAxisTrigger(MouseInput.AXIS_X, false));
+        inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
         inputManager.addMapping("Right", new MouseAxisTrigger(MouseInput.AXIS_X, true));
         inputManager.addMapping("Up", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
         inputManager.addMapping("Down", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
-        inputManager.addMapping("Jump", new KeyTrigger(KeyInput.KEY_SPACE));
-        inputManager.addListener(this, "Left");
-        inputManager.addListener(this, "Right");
-        inputManager.addListener(this, "Up");
-        inputManager.addListener(this, "Down");
-        inputManager.addListener(this, "Jump");
+        //inputManager.addListener(analogListener, "Left", "Right", "Up","Down");
+        lastCursorPosition.set(inputManager.getCursorPosition());
+
     }
+/*
+    private AnalogListener analogListener = new AnalogListener() {
+        @Override
+        public void onAnalog(String name, float keyPressed, float tpf) {
+            if (true) {
+
+            }
+        }
+    };
+*/
+
 
     public void simpleUpdate(float tpf) {
-        camDir.set(cam.getDirection()).multLocal(0.6f);
-        camLeft.set(cam.getLeft()).multLocal(0.4f);
-        walkDirection.set(0, 0, 0);
-        if (left) {
-            walkDirection.addLocal(camLeft);
+    // Calculer le déplacement de la souris depuis la dernière frame
+        if (click == true) {
+            Vector2f currentCursorPosition = inputManager.getCursorPosition();
+            System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
+            player.move(currentCursorPosition.getX(), currentCursorPosition.getY(), 0);
+            //player.
         }
-        if (right) {
-            walkDirection.addLocal(camLeft.negate());
-        }
-        if (up) {
-            walkDirection.addLocal(camDir);
-        }
-        if (down) {
-            walkDirection.addLocal(camDir.negate());
-        }
-        player.setWalkDirection(walkDirection);
-        cam.setLocation(player.getPhysicsLocation());
     }
 
     @Override
@@ -304,12 +310,12 @@ public static void main(String[] args) {
             if (value) { left = true; } else { left = false; }
         } else if (binding.equals("Right")) {
             if (value) { right = true; } else { right = false; }
+        } else if (binding.equals("Click")) {
+            if (value) { click = true; } else { click = false; }
         } else if (binding.equals("Up")) {
             if (value) { up = true; } else { up = false; }
         } else if (binding.equals("Down")) {
             if (value) { down = true; } else { down = false; }
-        } else if (binding.equals("Jump")) {
-            player.jump();
         }
     }
 }
