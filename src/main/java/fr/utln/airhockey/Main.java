@@ -7,7 +7,6 @@ import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.material.Material;
 import com.jme3.math.*;
@@ -18,12 +17,10 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.texture.Texture;
 
-import java.util.Currency;
 
-
-public class main extends SimpleApplication implements ActionListener {
+public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
-        main app = new main();
+        Main app = new Main();
         app.start();
     }
 

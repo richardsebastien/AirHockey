@@ -190,7 +190,7 @@ public class VRAppStateSample extends SimpleApplication {
                 FilterPostProcessor fpp = new FilterPostProcessor(getAssetManager());
                 fpp.addFilter(cartfilt);
                 getViewPort().addProcessor(fpp);
-                // filters added to main viewport during runtime,
+                // filters added to Main viewport during runtime,
                 // move them into VR processing
                 // (won't do anything if not in VR mode)
                 vrAppState.moveScreenProcessingToVR();

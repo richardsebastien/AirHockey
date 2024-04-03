@@ -157,8 +157,8 @@ public class ExamineCameraSample extends LightApplication {
 	}
 	
 	/**
-	 * The main method.
-	 * @param args the main method arguments.
+	 * The Main method.
+	 * @param args the Main method arguments.
 	 */
 	public static void main(String[] args) {
 		ExamineCameraSample app = new ExamineCameraSample();

@@ -11,7 +11,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
 
-/** Sample 4 - how to trigger repeating actions from the main event loop.
+/** Sample 4 - how to trigger repeating actions from the Main event loop.
  * In this example, you use the loop to make the player character
  * rotate continuously. */
 public class HelloLoop extends SimpleApplication {
