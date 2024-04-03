@@ -35,28 +35,24 @@ public static void main(String[] args) {
     final private Vector3f camLeft = new Vector3f();
     /** Prepare Materials */
     private Material wall_mat;
-    private Material stone_mat;
+    private Material cage_mat;
     private Material floor_mat;
 
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
     private Boolean isRunning = true;
-    private Vector2f lastCursorPosition = new Vector2f();
+    private final Vector2f lastCursorPosition = new Vector2f();
 
     static{
         floor = new Box(30f, 0.1f, 15f);
-        floor.scaleTextureCoordinates(new Vector2f(3, 6));
     }
 
     @Override
     public void simpleInitApp() {
-        /** Set up Physics Game */
+        /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         flyCam.setEnabled(false);
-
-
-
 
         initMaterials();
         initWalls();
@@ -65,43 +61,33 @@ public static void main(String[] args) {
         player = initRaquette();
         setUpKeys();
 
-        /** Configure cam to look at scene */
+        /* Configure cam to look at scene */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
-        //player = new CharacterControl(capsuleShape, 0.05f);
-        //player.setJumpSpeed(20);
-        //player.setFallSpeed(30);
-        //player.setGravity(0);
-        //player.setPhysicsLocation(new Vector3f(0, 75, 0));
-
-
-        //bulletAppState.getPhysicsSpace().add(player);
-
-
-
-
     }
 
     public void initMaterials() {
         wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key = new TextureKey("Textures/Terrain/BrickWall/BrickWall.jpg");
+        TextureKey key = new TextureKey("Textures/Terrain/wall.png");
         key.setGenerateMips(true);
         Texture tex = assetManager.loadTexture(key);
         wall_mat.setTexture("ColorMap", tex);
 
-        stone_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key2 = new TextureKey("Textures/Terrain/Rock/Rock.PNG");
+        cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        TextureKey key2 = new TextureKey("Textures/Terrain/cage.png");
         key2.setGenerateMips(true);
         Texture tex2 = assetManager.loadTexture(key2);
-        stone_mat.setTexture("ColorMap", tex2);
+        cage_mat.setTexture("ColorMap", tex2);
 
         floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key3 = new TextureKey("Textures/Terrain/Pond/Pond.jpg");
+        TextureKey key3 = new TextureKey("Textures/Terrain/table_base.png");
         key3.setGenerateMips(true);
         Texture tex3 = assetManager.loadTexture(key3);
-        tex3.setWrap(Texture.WrapMode.Repeat);
+        tex3.setWrap(Texture.WrapMode.EdgeClamp);
         floor_mat.setTexture("ColorMap", tex3);
+
+
     }
 
     public void initPalet(){
@@ -125,7 +111,7 @@ public static void main(String[] args) {
 
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /** Add physical brick to physics space. */
+        /* Add physical brick to physics space. */
         geom.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
         box_phy.setAngularFactor(0f);
@@ -187,7 +173,7 @@ public static void main(String[] args) {
         compositeNode.move(4f, 4f, 4f);
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /** Add physical brick to physics space. */
+        /* Add physical brick to physics space. */
         compositeNode.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
         box_phy.setAngularFactor(0f);
@@ -210,29 +196,47 @@ public static void main(String[] args) {
 */
 
     public void initWalls(){
-        Box wall = new Box(30f, 1.5f, 5f);
-        Box wall2 = new Box(5f, 1.5f, 15f);
-        Box wall3 = new Box(5f, 1.5f, 15f);
-        Box wall4 = new Box(30f, 1.5f, 5f);
+        Box wall = new Box(31f, 1.5f, 1f);
+        Box wall2 = new Box(1f, 1.5f, 5f);
+        Box wall3 = new Box(1f, 1.5f, 5f);
+        Box wall4 = new Box(31f, 1.5f, 1f);
+        Box wall5 = new Box(1f, 1.5f, 5f);
+        Box wall6 = new Box(1f, 1.5f, 5f);
+        Box wall7 = new Box(1f, 1.5f, 5f);
+        Box wall8 = new Box(1f, 1.5f, 5f);
         Geometry wall_geo = new Geometry("Wall", wall);
         Geometry wall_geo2 = new Geometry("Wall2", wall2);
         Geometry wall_geo3 = new Geometry("Wall3", wall3);
         Geometry wall_geo4 = new Geometry("Wall4", wall4);
-        Material wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Geometry wall_geo5 = new Geometry("Wall5", wall5);
+        Geometry wall_geo6 = new Geometry("Wall6", wall6);
+        Geometry wall_geo7 = new Geometry("Wall7", wall7);
+        Geometry wall_geo8 = new Geometry("Wall8", wall8);
         wall_geo.move(0, 0, -15);
         wall_geo2.move(-30, 0, 0);
         wall_geo3.move(30, 0, 0);
         wall_geo4.move(0, 0, 15);
-        wall_mat.setColor("Color", ColorRGBA.Blue);
+        wall_geo5.move(-30, 0, -9);
+        wall_geo6.move(30, 0, 9);
+        wall_geo7.move(-30, 0, 9);
+        wall_geo8.move(30, 0, -9);
         wall_geo.setMaterial(wall_mat);
-        wall_geo2.setMaterial(wall_mat);
-        wall_geo3.setMaterial(wall_mat);
+        wall_geo2.setMaterial(cage_mat);
+        wall_geo3.setMaterial(cage_mat);
         wall_geo4.setMaterial(wall_mat);
+        wall_geo5.setMaterial(wall_mat);
+        wall_geo6.setMaterial(wall_mat);
+        wall_geo7.setMaterial(wall_mat);
+        wall_geo8.setMaterial(wall_mat);
 
         rootNode.attachChild(wall_geo);
         rootNode.attachChild(wall_geo2);
         rootNode.attachChild(wall_geo3);
         rootNode.attachChild(wall_geo4);
+        rootNode.attachChild(wall_geo5);
+        rootNode.attachChild(wall_geo6);
+        rootNode.attachChild(wall_geo7);
+        rootNode.attachChild(wall_geo8);
 
 
         RigidBodyControl wall_phy = new RigidBodyControl(0.0f);
@@ -251,10 +255,30 @@ public static void main(String[] args) {
         wall_geo4.addControl(wall_phy4);
         bulletAppState.getPhysicsSpace().add(wall_phy4);
 
+        RigidBodyControl wall_phy5 = new RigidBodyControl(0.0f);
+        wall_geo5.addControl(wall_phy5);
+        bulletAppState.getPhysicsSpace().add(wall_phy5);
+
+        RigidBodyControl wall_phy6 = new RigidBodyControl(0.0f);
+        wall_geo6.addControl(wall_phy6);
+        bulletAppState.getPhysicsSpace().add(wall_phy6);
+
+        RigidBodyControl wall_phy7 = new RigidBodyControl(0.0f);
+        wall_geo7.addControl(wall_phy7);
+        bulletAppState.getPhysicsSpace().add(wall_phy7);
+
+        RigidBodyControl wall_phy8 = new RigidBodyControl(0.0f);
+        wall_geo8.addControl(wall_phy8);
+        bulletAppState.getPhysicsSpace().add(wall_phy8);
+
         wall_phy.setRestitution(1.0f);
         wall_phy2.setRestitution(1.0f);
         wall_phy3.setRestitution(1.0f);
         wall_phy4.setRestitution(1.0f);
+        wall_phy5.setRestitution(1.0f);
+        wall_phy6.setRestitution(1.0f);
+        wall_phy7.setRestitution(1.0f);
+        wall_phy8.setRestitution(1.0f);
     }
 
     public void initFloor() {
@@ -293,7 +317,7 @@ public static void main(String[] args) {
 
     public void simpleUpdate(float tpf) {
     // Calculer le déplacement de la souris depuis la dernière frame
-        if (click == true) {
+        if (click) {
             Vector2f currentCursorPosition = inputManager.getCursorPosition();
             System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
             player.move(currentCursorPosition.getX(), currentCursorPosition.getY(), 0);
@@ -303,16 +327,22 @@ public static void main(String[] args) {
 
     @Override
     public void onAction(String binding, boolean value, float tpf) {
-        if (binding.equals("Left")) {
-            if (value) { left = true; } else { left = false; }
-        } else if (binding.equals("Right")) {
-            if (value) { right = true; } else { right = false; }
-        } else if (binding.equals("Click")) {
-            if (value) { click = true; } else { click = false; }
-        } else if (binding.equals("Up")) {
-            if (value) { up = true; } else { up = false; }
-        } else if (binding.equals("Down")) {
-            if (value) { down = true; } else { down = false; }
+        switch (binding) {
+            case "Left":
+                left = value;
+                break;
+            case "Right":
+                right = value;
+                break;
+            case "Click":
+                click = value;
+                break;
+            case "Up":
+                up = value;
+                break;
+            case "Down":
+                down = value;
+                break;
         }
     }
 }
