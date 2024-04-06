@@ -9,9 +9,11 @@ import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
@@ -37,9 +39,9 @@ public static void main(String[] args) {
     private Material wall_mat;
     private Material cage_mat;
     private Material floor_mat;
-
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
+    private Geometry customQuad_geo;
     private Boolean isRunning = true;
     private final Vector2f lastCursorPosition = new Vector2f();
 
@@ -61,7 +63,7 @@ public static void main(String[] args) {
         player = initRaquette();
         setUpKeys();
 
-        /* Configure cam to look at scene */
+        /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
@@ -75,10 +77,17 @@ public static void main(String[] args) {
         wall_mat.setTexture("ColorMap", tex);
 
         cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key2 = new TextureKey("Textures/Terrain/cage.png");
+        cage_mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+        TextureKey key2 = new TextureKey("Textures/Terrain/cage_rouge.png");
         key2.setGenerateMips(true);
         Texture tex2 = assetManager.loadTexture(key2);
         cage_mat.setTexture("ColorMap", tex2);
+
+        /*
+        * TODO : Faire une texture pour la cage bleue, également faire 2 cubemaps pour appliquer une texture différente
+        *        à chaque face du cube. Et appliquer le 2e cubemap au cube de la cage bleue. Regarder si possible sous
+        *        GIMP pour faire une texture de cube, sinon regarder avec Blender.
+         */
 
         floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         TextureKey key3 = new TextureKey("Textures/Terrain/table_base.png");
@@ -196,33 +205,43 @@ public static void main(String[] args) {
 */
 
     public void initWalls(){
+        /* test customquad texture */
+        CustomQuad customQuad = new CustomQuad(true, true, true, true, true, true);
+        customQuad_geo = new Geometry("CustomQuad", customQuad);
+        customQuad_geo.setMaterial(cage_mat);
+        customQuad_geo.setLocalTranslation(0, 45, 0);
+        rootNode.attachChild(customQuad_geo);
+        /* Initialization of walls and cages */
         Box wall = new Box(31f, 1.5f, 1f);
-        Box wall2 = new Box(1f, 1.5f, 5f);
-        Box wall3 = new Box(1f, 1.5f, 5f);
+        CustomQuad cage1 = new CustomQuad(true, true, true, false, true, true);
+        CustomQuad cage2 = new CustomQuad(true, true, false, true, true, true);
         Box wall4 = new Box(31f, 1.5f, 1f);
-        Box wall5 = new Box(1f, 1.5f, 5f);
-        Box wall6 = new Box(1f, 1.5f, 5f);
-        Box wall7 = new Box(1f, 1.5f, 5f);
-        Box wall8 = new Box(1f, 1.5f, 5f);
+        Box wall5 = new Box(2f, 1.2f, 5f);
+        Box wall6 = new Box(2f, 1.2f, 5f);
+        Box wall7 = new Box(2f, 1.2f, 5f);
+        Box wall8 = new Box(2f, 1.2f, 5f);
         Geometry wall_geo = new Geometry("Wall", wall);
-        Geometry wall_geo2 = new Geometry("Wall2", wall2);
-        Geometry wall_geo3 = new Geometry("Wall3", wall3);
+        Geometry cage_geo1 = new Geometry("Wall2", cage1);
+        Geometry cage_geo2 = new Geometry("Wall3", cage2);
         Geometry wall_geo4 = new Geometry("Wall4", wall4);
         Geometry wall_geo5 = new Geometry("Wall5", wall5);
         Geometry wall_geo6 = new Geometry("Wall6", wall6);
         Geometry wall_geo7 = new Geometry("Wall7", wall7);
         Geometry wall_geo8 = new Geometry("Wall8", wall8);
+        /* Move the cages to the correct position */
+        cage_geo1.move(-29, 0, 0);
+        cage_geo2.move(29, 0, 0);
+        /* Move the walls to the correct position */
         wall_geo.move(0, 0, -15);
-        wall_geo2.move(-30, 0, 0);
-        wall_geo3.move(30, 0, 0);
         wall_geo4.move(0, 0, 15);
-        wall_geo5.move(-30, 0, -9);
-        wall_geo6.move(30, 0, 9);
-        wall_geo7.move(-30, 0, 9);
-        wall_geo8.move(30, 0, -9);
+        wall_geo5.move(-29, 0, -10);
+        wall_geo6.move(29, 0, 10);
+        wall_geo7.move(-29, 0, 10);
+        wall_geo8.move(29, 0, -10);
+
         wall_geo.setMaterial(wall_mat);
-        wall_geo2.setMaterial(cage_mat);
-        wall_geo3.setMaterial(cage_mat);
+        cage_geo1.setMaterial(cage_mat);
+        cage_geo2.setMaterial(cage_mat);
         wall_geo4.setMaterial(wall_mat);
         wall_geo5.setMaterial(wall_mat);
         wall_geo6.setMaterial(wall_mat);
@@ -230,25 +249,25 @@ public static void main(String[] args) {
         wall_geo8.setMaterial(wall_mat);
 
         rootNode.attachChild(wall_geo);
-        rootNode.attachChild(wall_geo2);
-        rootNode.attachChild(wall_geo3);
+        rootNode.attachChild(cage_geo1);
+        rootNode.attachChild(cage_geo2);
         rootNode.attachChild(wall_geo4);
         rootNode.attachChild(wall_geo5);
         rootNode.attachChild(wall_geo6);
         rootNode.attachChild(wall_geo7);
         rootNode.attachChild(wall_geo8);
 
-
+        /* Make the walls physical with mass 0.0f */
         RigidBodyControl wall_phy = new RigidBodyControl(0.0f);
         wall_geo.addControl(wall_phy);
         bulletAppState.getPhysicsSpace().add(wall_phy);
 
         RigidBodyControl wall_phy2 = new RigidBodyControl(0.0f);
-        wall_geo2.addControl(wall_phy2);
+        cage_geo1.addControl(wall_phy2);
         bulletAppState.getPhysicsSpace().add(wall_phy2);
 
         RigidBodyControl wall_phy3 = new RigidBodyControl(0.0f);
-        wall_geo3.addControl(wall_phy3);
+        cage_geo2.addControl(wall_phy3);
         bulletAppState.getPhysicsSpace().add(wall_phy3);
 
         RigidBodyControl wall_phy4 = new RigidBodyControl(0.0f);
@@ -317,11 +336,11 @@ public static void main(String[] args) {
 
     public void simpleUpdate(float tpf) {
     // Calculer le déplacement de la souris depuis la dernière frame
+        customQuad_geo.rotate(0, 1*tpf, 2*tpf);
         if (click) {
             Vector2f currentCursorPosition = inputManager.getCursorPosition();
             System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
             player.move(currentCursorPosition.getX(), currentCursorPosition.getY(), 0);
-            //player.
         }
     }
 
