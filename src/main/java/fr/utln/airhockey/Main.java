@@ -334,6 +334,28 @@ public static void main(String[] args) {
         rootNode.attachChild(blue_cage_top_geo);
 
         rootNode.attachChild(blue_cage_invisible_geo);
+
+        /* Make the cages physical with mass 0.0f */
+        RigidBodyControl red_cage_top_phy = new RigidBodyControl(0.0f);
+        red_cage_top_geo.addControl(red_cage_top_phy);
+        bulletAppState.getPhysicsSpace().add(red_cage_top_phy);
+
+        RigidBodyControl red_cage_back_phy = new RigidBodyControl(0.0f);
+        red_cage_back_geo.addControl(red_cage_back_phy);
+        bulletAppState.getPhysicsSpace().add(red_cage_back_phy);
+
+        RigidBodyControl blue_cage_top_phy = new RigidBodyControl(0.0f);
+        blue_cage_top_geo.addControl(blue_cage_top_phy);
+        bulletAppState.getPhysicsSpace().add(blue_cage_top_phy);
+
+        RigidBodyControl blue_cage_back_phy = new RigidBodyControl(0.0f);
+        blue_cage_back_geo.addControl(blue_cage_back_phy);
+        bulletAppState.getPhysicsSpace().add(blue_cage_back_phy);
+
+        red_cage_top_phy.setRestitution(1.0f);
+        red_cage_back_phy.setRestitution(1.0f);
+        blue_cage_back_phy.setRestitution(1.0f);
+        blue_cage_top_phy.setRestitution(1.0f);
     }
 
     public void initFloor() {
