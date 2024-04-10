@@ -7,7 +7,9 @@ import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.LayerBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.ScreenBuilder;
+import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.button.builder.ButtonBuilder;
+import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 
@@ -35,6 +37,9 @@ public class StartScreenState extends BaseAppState implements ScreenController {
             layer(new LayerBuilder("background") {{
                 backgroundColor("#808080");
                 childLayoutCenter();
+                control(new LabelBuilder("dummy") {{
+                    visible(false);
+                }});
             }});
             layer(new LayerBuilder("foreground") {{
                 backgroundColor("#0000");
@@ -48,11 +53,15 @@ public class StartScreenState extends BaseAppState implements ScreenController {
                     height("5%");
                     width("100%");
                     childLayoutCenter();
-                    control(new ButtonBuilder("StartButton", "Jouer en 1 vs IA") {{
+                    control(new ButtonBuilder("OnePlayerButton", "Jouer en 1 vs IA") {{
                         alignCenter();
                         valignCenter();
+
                         visibleToMouse(true);
                         interactOnClick("startGame1vsIA()");
+                        backgroundColor("#ffffffff");
+                        color("#545454ff");
+                        interactOnMouseOver("colorPulse(color,#ff0000ff,500,linear) backgroundColorPulse(#ff0000ff,500,linear)");
                     }});
                 }});
 
@@ -60,7 +69,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
                     height("5%");
                     width("100%");
                     childLayoutCenter();
-                    control(new ButtonBuilder("QuitButton", "Jouer en 1 vs 1") {{
+                    control(new ButtonBuilder("OneToOneButton", "Jouer en 1 vs 1") {{
                         alignCenter();
                         valignCenter();
                         visibleToMouse(true);
@@ -71,7 +80,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
                     height("5%");
                     width("100%");
                     childLayoutCenter();
-                    control(new ButtonBuilder("QuitButton", "Jouer en réseau") {{
+                    control(new ButtonBuilder("NetworkButton", "Jouer en réseau") {{
                         alignCenter();
                         valignCenter();
                         visibleToMouse(true);
@@ -126,6 +135,9 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     @Override
     public void onStartScreen() {
         // Called when the screen gets shown
+        nifty.getCurrentScreen().findNiftyControl("dummy", Label.class).setFocus();
+        nifty.getCurrentScreen().setDefaultFocusElement("dummy");
+
 
     }
 
