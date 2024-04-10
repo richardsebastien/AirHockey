@@ -13,7 +13,6 @@ import com.jme3.material.RenderState;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
@@ -37,11 +36,12 @@ public static void main(String[] args) {
     final private Vector3f camLeft = new Vector3f();
     /** Prepare Materials */
     private Material wall_mat;
-    private Material cage_mat;
+    private Material red_cage_mat;
+    private Material blue_cage_mat;
+    private Material invisible_cage_mat;
     private Material floor_mat;
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
-    private Geometry customQuad_geo;
     private Boolean isRunning = true;
     private final Vector2f lastCursorPosition = new Vector2f();
 
@@ -54,10 +54,12 @@ public static void main(String[] args) {
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-        flyCam.setEnabled(false);
+        flyCam.setEnabled(true);
+        flyCam.setMoveSpeed(45);
 
         initMaterials();
         initWalls();
+        initCages();
         initFloor();
         initPalet();
         player = initRaquette();
@@ -76,18 +78,17 @@ public static void main(String[] args) {
         Texture tex = assetManager.loadTexture(key);
         wall_mat.setTexture("ColorMap", tex);
 
-        cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        cage_mat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+        red_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         TextureKey key2 = new TextureKey("Textures/Terrain/cage_rouge.png");
         key2.setGenerateMips(true);
         Texture tex2 = assetManager.loadTexture(key2);
-        cage_mat.setTexture("ColorMap", tex2);
+        red_cage_mat.setTexture("ColorMap", tex2);
 
-        /*
-        * TODO : Faire une texture pour la cage bleue, également faire 2 cubemaps pour appliquer une texture différente
-        *        à chaque face du cube. Et appliquer le 2e cubemap au cube de la cage bleue. Regarder si possible sous
-        *        GIMP pour faire une texture de cube, sinon regarder avec Blender.
-         */
+        blue_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        TextureKey key4 = new TextureKey("Textures/Terrain/cage_bleue.png");
+        key4.setGenerateMips(true);
+        Texture tex4 = assetManager.loadTexture(key4);
+        blue_cage_mat.setTexture("ColorMap", tex4);
 
         floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         TextureKey key3 = new TextureKey("Textures/Terrain/table_base.png");
@@ -96,7 +97,9 @@ public static void main(String[] args) {
         tex3.setWrap(Texture.WrapMode.EdgeClamp);
         floor_mat.setTexture("ColorMap", tex3);
 
-
+        invisible_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        invisible_cage_mat.setColor("Color", new ColorRGBA(1, 1, 1, 0));
+        invisible_cage_mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
     }
 
     public void initPalet(){
@@ -205,73 +208,56 @@ public static void main(String[] args) {
 */
 
     public void initWalls(){
-        /* test customquad texture */
-        CustomQuad customQuad = new CustomQuad(true, true, true, true, true, true);
-        customQuad_geo = new Geometry("CustomQuad", customQuad);
-        customQuad_geo.setMaterial(cage_mat);
-        customQuad_geo.setLocalTranslation(0, 45, 0);
-        rootNode.attachChild(customQuad_geo);
-        /* Initialization of walls and cages */
-        Box wall = new Box(31f, 1.5f, 1f);
-        CustomQuad cage1 = new CustomQuad(true, true, true, false, true, true);
-        CustomQuad cage2 = new CustomQuad(true, true, false, true, true, true);
-        Box wall4 = new Box(31f, 1.5f, 1f);
-        Box wall5 = new Box(2f, 1.2f, 5f);
-        Box wall6 = new Box(2f, 1.2f, 5f);
-        Box wall7 = new Box(2f, 1.2f, 5f);
-        Box wall8 = new Box(2f, 1.2f, 5f);
-        Geometry wall_geo = new Geometry("Wall", wall);
-        Geometry cage_geo1 = new Geometry("Wall2", cage1);
-        Geometry cage_geo2 = new Geometry("Wall3", cage2);
+        /* Initialization of walls */
+        Box wall1 = new Box(31f, 1.5f, 1f);
+        Box wall2 = new Box(31f, 1.5f, 1f);
+        Box wall3 = new Box(2f, 1.2f, 4.5f);
+        Box wall4 = new Box(2f, 1.2f, 4.5f);
+        Box wall5 = new Box(2f, 1.2f, 4.5f);
+        Box wall6 = new Box(2f, 1.2f, 4.5f);
+        Geometry wall_geo1 = new Geometry("Wall1", wall1);
+        Geometry wall_geo2 = new Geometry("Wall2", wall2);
+        Geometry wall_geo3 = new Geometry("Wall3", wall3);
         Geometry wall_geo4 = new Geometry("Wall4", wall4);
         Geometry wall_geo5 = new Geometry("Wall5", wall5);
         Geometry wall_geo6 = new Geometry("Wall6", wall6);
-        Geometry wall_geo7 = new Geometry("Wall7", wall7);
-        Geometry wall_geo8 = new Geometry("Wall8", wall8);
-        /* Move the cages to the correct position */
-        cage_geo1.move(-29, 0, 0);
-        cage_geo2.move(29, 0, 0);
         /* Move the walls to the correct position */
-        wall_geo.move(0, 0, -15);
-        wall_geo4.move(0, 0, 15);
-        wall_geo5.move(-29, 0, -10);
-        wall_geo6.move(29, 0, 10);
-        wall_geo7.move(-29, 0, 10);
-        wall_geo8.move(29, 0, -10);
+        wall_geo1.move(0, 0, -15);
+        wall_geo2.move(0, 0, 15);
+        wall_geo3.move(-29, 0, -9.5f);
+        wall_geo4.move(29, 0, 9.5f);
+        wall_geo5.move(-29, 0, 9.5f);
+        wall_geo6.move(29, 0, -9.5f);
 
-        wall_geo.setMaterial(wall_mat);
-        cage_geo1.setMaterial(cage_mat);
-        cage_geo2.setMaterial(cage_mat);
+        wall_geo1.setMaterial(wall_mat);
+        wall_geo2.setMaterial(wall_mat);
+        wall_geo3.setMaterial(wall_mat);
         wall_geo4.setMaterial(wall_mat);
         wall_geo5.setMaterial(wall_mat);
         wall_geo6.setMaterial(wall_mat);
-        wall_geo7.setMaterial(wall_mat);
-        wall_geo8.setMaterial(wall_mat);
 
-        rootNode.attachChild(wall_geo);
-        rootNode.attachChild(cage_geo1);
-        rootNode.attachChild(cage_geo2);
+        rootNode.attachChild(wall_geo1);
+        rootNode.attachChild(wall_geo2);
+        rootNode.attachChild(wall_geo3);
         rootNode.attachChild(wall_geo4);
         rootNode.attachChild(wall_geo5);
         rootNode.attachChild(wall_geo6);
-        rootNode.attachChild(wall_geo7);
-        rootNode.attachChild(wall_geo8);
 
         /* Make the walls physical with mass 0.0f */
-        RigidBodyControl wall_phy = new RigidBodyControl(0.0f);
-        wall_geo.addControl(wall_phy);
-        bulletAppState.getPhysicsSpace().add(wall_phy);
+        RigidBodyControl wall_phy1 = new RigidBodyControl(0.0f);
+        wall_geo1.addControl(wall_phy1);
+        bulletAppState.getPhysicsSpace().add(wall_phy1);
 
         RigidBodyControl wall_phy2 = new RigidBodyControl(0.0f);
-        cage_geo1.addControl(wall_phy2);
+        wall_geo4.addControl(wall_phy2);
         bulletAppState.getPhysicsSpace().add(wall_phy2);
 
         RigidBodyControl wall_phy3 = new RigidBodyControl(0.0f);
-        cage_geo2.addControl(wall_phy3);
+        wall_geo5.addControl(wall_phy3);
         bulletAppState.getPhysicsSpace().add(wall_phy3);
 
         RigidBodyControl wall_phy4 = new RigidBodyControl(0.0f);
-        wall_geo4.addControl(wall_phy4);
+        wall_geo6.addControl(wall_phy4);
         bulletAppState.getPhysicsSpace().add(wall_phy4);
 
         RigidBodyControl wall_phy5 = new RigidBodyControl(0.0f);
@@ -282,22 +268,72 @@ public static void main(String[] args) {
         wall_geo6.addControl(wall_phy6);
         bulletAppState.getPhysicsSpace().add(wall_phy6);
 
-        RigidBodyControl wall_phy7 = new RigidBodyControl(0.0f);
-        wall_geo7.addControl(wall_phy7);
-        bulletAppState.getPhysicsSpace().add(wall_phy7);
-
-        RigidBodyControl wall_phy8 = new RigidBodyControl(0.0f);
-        wall_geo8.addControl(wall_phy8);
-        bulletAppState.getPhysicsSpace().add(wall_phy8);
-
-        wall_phy.setRestitution(1.0f);
+        wall_phy1.setRestitution(1.0f);
         wall_phy2.setRestitution(1.0f);
         wall_phy3.setRestitution(1.0f);
         wall_phy4.setRestitution(1.0f);
         wall_phy5.setRestitution(1.0f);
         wall_phy6.setRestitution(1.0f);
-        wall_phy7.setRestitution(1.0f);
-        wall_phy8.setRestitution(1.0f);
+    }
+
+    public void initCages(){
+        /* Initialization of the red cage */
+        Box red_cage_back = new Box(0.1f, 1.2f, 5f);
+        Box red_cage_top = new Box(2f, 0.1f, 5f);
+
+        /* Invisible cage to check the collision with palet (red side) */
+        Box red_cage_invisible = new Box(2f, 1.2f, 5f);
+
+        /* Initialization of the blue cage */
+        Box blue_cage_back = new Box(0.1f, 1.2f, 5f);
+        Box blue_cage_top = new Box(2f, 0.1f, 5f);
+
+        /* Invisible cage to check the collision with palet (blue side) */
+        Box blue_cage_invisible = new Box(2f, 1.2f, 5f);
+
+        /* Geometries (red then blue) */
+        Geometry red_cage_back_geo = new Geometry("Red Cage Back", red_cage_back);
+        Geometry red_cage_top_geo = new Geometry("Red Cage Top", red_cage_top);
+
+        Geometry red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
+
+        Geometry blue_cage_back_geo = new Geometry("Blue Cage Back", blue_cage_back);
+        Geometry blue_cage_top_geo = new Geometry("Blue Cage Top", blue_cage_top);
+
+        Geometry blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
+
+        /* Move the geometries to the correct position */
+        red_cage_back_geo.move(-30.9f, 0, 0);
+        red_cage_top_geo.move(-29, 1.1f, 0);
+
+        red_cage_invisible_geo.move(-29, 0, 0);
+
+        blue_cage_back_geo.move(30.9f, 0, 0);
+        blue_cage_top_geo.move(29, 1.1f, 0);
+
+        blue_cage_invisible_geo.move(29, 0, 0);
+
+        /* Set the materials */
+        red_cage_back_geo.setMaterial(wall_mat);
+        red_cage_top_geo.setMaterial(red_cage_mat);
+
+        red_cage_invisible_geo.setMaterial(invisible_cage_mat);
+
+        blue_cage_back_geo.setMaterial(wall_mat);
+        blue_cage_top_geo.setMaterial(blue_cage_mat);
+
+        blue_cage_invisible_geo.setMaterial(invisible_cage_mat);
+
+        /* Attach to root */
+        rootNode.attachChild(red_cage_back_geo);
+        rootNode.attachChild(red_cage_top_geo);
+
+        rootNode.attachChild(red_cage_invisible_geo);
+
+        rootNode.attachChild(blue_cage_back_geo);
+        rootNode.attachChild(blue_cage_top_geo);
+
+        rootNode.attachChild(blue_cage_invisible_geo);
     }
 
     public void initFloor() {
@@ -336,7 +372,6 @@ public static void main(String[] args) {
 
     public void simpleUpdate(float tpf) {
     // Calculer le déplacement de la souris depuis la dernière frame
-        customQuad_geo.rotate(0, 1*tpf, 2*tpf);
         if (click) {
             Vector2f currentCursorPosition = inputManager.getCursorPosition();
             System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
