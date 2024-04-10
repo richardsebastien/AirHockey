@@ -403,22 +403,20 @@ public static void main(String[] args) {
 
     @Override
     public void onAction(String binding, boolean value, float tpf) {
-        switch (binding) {
-            case "Left":
-                left = value;
-                break;
-            case "Right":
-                right = value;
-                break;
-            case "Click":
-                click = value;
-                break;
-            case "Up":
-                up = value;
-                break;
-            case "Down":
-                down = value;
-                break;
+        if (binding.equals("Left")) {
+            left = value;
+        }
+        if (binding.equals("Right")) {
+            right = value;
+        }
+        if (binding.equals("Click")) {
+            click = value;
+        }
+        if (binding.equals("Up")) {
+            up = value;
+        }
+        if (binding.equals("Down")) {
+            down = value;
         }
     }
 }
