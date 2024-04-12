@@ -61,7 +61,8 @@ public static void main(String[] args) {
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         flyCam.setEnabled(false);
-        /*
+        bulletAppState.setDebugEnabled(true);
+
         // Create two cam to render the scene
         Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
         Camera cam2 = new Camera(settings.getWidth(), settings.getHeight());
@@ -86,7 +87,7 @@ public static void main(String[] args) {
         cam1.update();
         cam2.update();
 
-         */
+
 
 
         listerManettes();
@@ -297,17 +298,16 @@ public static void main(String[] args) {
     private boolean dragging = false;
     private Vector2f dragOffset = new Vector2f();
 
-    private int joyCarré = 0;
-    private int joyCroix = 1;
-    private int joyCercle = 2;
-    private int joyTriangle = 3;
-
-    private int joyLeftStickX = 0;
-    private int joyLeftStickY = 1;
-    private int joyRightStickX = 2;
-    private int joyButtonL2 = 3;
-    private int joyButtonR2 = 4;
-    private int joyRightStickY = 5;
+    private final int joyCarré = 0;
+    private final int joyCroix = 1;
+    private final int joyCercle = 2;
+    private final int joyTriangle = 3;
+    private final int joyLeftStickX = 0;
+    private final int joyLeftStickY = 1;
+    private final int joyRightStickX = 2;
+    private final int joyButtonL2 = 3;
+    private final int joyButtonR2 = 4;
+    private final int joyRightStickY = 5;
 
     private void setUpKeys() {
         inputManager.addMapping("MouseMoved", new MouseAxisTrigger(MouseInput.AXIS_X, true), new MouseAxisTrigger(MouseInput.AXIS_X, false), new MouseAxisTrigger(MouseInput.AXIS_Y, true), new MouseAxisTrigger(MouseInput.AXIS_Y, false));

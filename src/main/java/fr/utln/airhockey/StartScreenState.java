@@ -31,6 +31,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
 
         nifty.loadStyleFile("nifty-default-styles.xml");
         nifty.loadControlFile("nifty-default-controls.xml");
+        nifty.addXml("myButtonStyle.xml");
 
         nifty.addScreen("start", new ScreenBuilder("start") {{
             controller(StartScreenState.this);
@@ -56,12 +57,8 @@ public class StartScreenState extends BaseAppState implements ScreenController {
                     control(new ButtonBuilder("OnePlayerButton", "Jouer en 1 vs IA") {{
                         alignCenter();
                         valignCenter();
-
                         visibleToMouse(true);
                         interactOnClick("startGame1vsIA()");
-                        backgroundColor("#ffffffff");
-                        color("#545454ff");
-                        interactOnMouseOver("colorPulse(color,#ff0000ff,500,linear) backgroundColorPulse(#ff0000ff,500,linear)");
                     }});
                 }});
 
