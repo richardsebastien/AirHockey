@@ -28,6 +28,7 @@ public static void main(String[] args) {
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
     private RigidBodyControl player;
+    private RigidBodyControl AI;
     private RigidBodyControl palet;
 
     private boolean click = false;
@@ -63,6 +64,7 @@ public static void main(String[] args) {
         initFloor();
         palet = initPalet();
         player = initRaquette();
+        AI = initEnnemie();
 
         //RigidBodyControl[] pomme;
         //pomme = initWalls();
@@ -112,8 +114,14 @@ public static void main(String[] args) {
         Geometry geom = new Geometry("Cylinder", new Cylinder( axialSamples, radialSamples, radius, height, closed));
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
 
+        TextureKey key2 = new TextureKey("Textures/ahmed2.png");
+        key2.setGenerateMips(true);
+        Texture tex2 = assetManager.loadTexture(key2);
+        mat.setTexture("ColorMap", tex2);
+
+
         geom.rotate(FastMath.HALF_PI, 0, 0);
-        mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
+        //mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
         geom.setMaterial(mat);                   // set the cube's material
 
 
@@ -181,6 +189,58 @@ public static void main(String[] args) {
         return box_phy;
 
     }
+
+    public RigidBodyControl initEnnemie(){
+
+        float cylinderHeight = 1.5f;
+        float sphereRadius = 0.5f;
+
+        // je crée le cylindre
+        Cylinder cylinderMesh = new Cylinder(32, 32, 2f, cylinderHeight, true);
+        Geometry cylinderGeom = new Geometry("Cylinder", cylinderMesh);
+        Material cylinderMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        cylinderMat.setColor("Color", ColorRGBA.Black);
+        cylinderGeom.setMaterial(cylinderMat);
+
+
+        // je crée la sphère
+        Sphere sphereMesh = new Sphere(32, 32, sphereRadius);
+        Geometry sphereGeom = new Geometry("Sphere", sphereMesh);
+        Material sphereMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        sphereMat.setColor("Color", ColorRGBA.Brown);
+        sphereGeom.setMaterial(sphereMat);
+
+
+        // je positionne la sphère au sommet du cylindre
+        sphereGeom.setLocalTranslation(new Vector3f(0, cylinderHeight + sphereRadius, 0));
+
+        cylinderGeom.setLocalTranslation(0, 0f, 0);
+        sphereGeom.setLocalTranslation(0, 1.2f, 0f);
+        cylinderGeom.rotate(FastMath.HALF_PI, 0, 0);
+
+        //tu crées tes 2 objets à lier ...... dans mon cas cylinderGeom et sphereGeom
+        Node compositeNode = new Node("CompositeObject");
+        compositeNode.attachChild(cylinderGeom);
+        compositeNode.attachChild(sphereGeom);
+
+        //je bouge les 2 objets liées en même temps en utilisante le composite node
+        compositeNode.move(-6f, 2f, 2f);
+
+        RigidBodyControl box_phy = new RigidBodyControl(1f);
+
+
+        compositeNode.addControl(box_phy);
+        bulletAppState.getPhysicsSpace().add(box_phy);
+        box_phy.setRestitution(0.0f);
+        box_phy.setFriction(0f);
+
+        rootNode.attachChild(compositeNode);
+        return box_phy;
+
+    }
+
+
+
 
 
     public RigidBodyControl[] initWalls(){
@@ -255,8 +315,41 @@ public static void main(String[] args) {
 
 
 
+    public void EnnemiComportement() {
+        if (palet.getPhysicsLocation().x > -5)      {
+
+
+            Vector3f base = new Vector3f(-22f,0f,0f);
+            Vector3f direction = base.subtract(AI.getPhysicsLocation());
+            float distance = direction.length();
+            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            direction = direction.normalize();
+            // Appliquer le déplacement au joueur
+            AI.setLinearVelocity(direction.mult(75)); // Multiplier par une vitesse de déplacement
+
+
+        }
+        else{
+        Vector3f direction = palet.getPhysicsLocation().subtract(AI.getPhysicsLocation());
+        float distance = direction.length();
+        // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+        direction = direction.normalize();
+        float speedMultiplier = Math.min(distance / 6, 1.0f);
+        // Appliquer le déplacement au joueur
+        AI.setLinearVelocity(direction.mult(speedMultiplier * 75)); // Multiplier par une vitesse de déplacement
+        if (AI.getPhysicsLocation().x > -5) {
+            Vector3f temp = AI.getLinearVelocity();
+            temp.x = 0;
+            AI.setLinearVelocity(temp);
+        }
+        }
+
+    }
+
 
     public void simpleUpdate(float tpf) {
+
+        EnnemiComportement();
 
         Vector3f bloqueRaquette;
         Vector3f bloquePalet;
@@ -268,12 +361,14 @@ public static void main(String[] args) {
         player.setLinearVelocity(new Vector3f(bloqueRaquette.x,0f,bloqueRaquette.z));
 
         rotatePalet = palet.getAngularVelocity();
-        palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
+        palet.setAngularVelocity(new Vector3f(0, 5, 0f));
         bloquePalet = palet.getLinearVelocity();
         palet.setLinearVelocity(new Vector3f(bloquePalet.x,0f,bloquePalet.z));
 
 
         if (click == true) {
+
+
 
             // Reset results list.
             CollisionResults results = new CollisionResults();
@@ -291,6 +386,7 @@ public static void main(String[] args) {
 
 
                     Vector3f posSouris = results.getCollision(i).getContactPoint();
+                    System.out.println(posSouris);
                     Vector3f posPalet = player.getPhysicsLocation();
 
                     // Pour eviter que la raquette est Parkinson
@@ -321,10 +417,12 @@ public static void main(String[] args) {
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("LeftClick") && isPressed) {
                 click = true;
+                inputManager.setCursorVisible(false);
             }
             //Fin du clic gauche
             else {
                 click = false;
+                inputManager.setCursorVisible(true);
             }
         }
     };
