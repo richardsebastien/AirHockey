@@ -3,6 +3,7 @@ package fr.utln.airhockey;
 import com.jme3.app.Application;
 import com.jme3.app.state.BaseAppState;
 import com.jme3.niftygui.NiftyJmeDisplay;
+import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.LayerBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
@@ -17,9 +18,12 @@ import javax.annotation.Nonnull;
 
 public class StartScreenState extends BaseAppState implements ScreenController {
     private Nifty nifty;
+    private Application app;
 
     @Override
     protected void initialize(Application app) {
+        System.out.println("Initialize calles. App is: " + app);
+        this.app = app;
         NiftyJmeDisplay niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
                 app.getAssetManager(),
                 app.getInputManager(),
@@ -29,80 +33,9 @@ public class StartScreenState extends BaseAppState implements ScreenController {
         nifty = niftyDisplay.getNifty();
         app.getInputManager().setCursorVisible(true);
 
-        nifty.loadStyleFile("nifty-default-styles.xml");
-        nifty.loadControlFile("nifty-default-controls.xml");
-        nifty.addXml("myButtonStyle.xml");
+        nifty.fromXml("Interface/Screens.xml", "start", this);
 
-        nifty.addScreen("start", new ScreenBuilder("start") {{
-            controller(StartScreenState.this);
-            layer(new LayerBuilder("background") {{
-                backgroundColor("#808080");
-                childLayoutCenter();
-                control(new LabelBuilder("dummy") {{
-                    visible(false);
-                }});
-            }});
-            layer(new LayerBuilder("foreground") {{
-                backgroundColor("#0000");
-                childLayoutVertical();
-                panel(new PanelBuilder("panel_top") {{
-                    height("25%");
-                    width("75%");
-                    childLayoutCenter();
-                }});
-                panel(new PanelBuilder("panel_mid") {{
-                    height("5%");
-                    width("100%");
-                    childLayoutCenter();
-                    control(new ButtonBuilder("OnePlayerButton", "Jouer en 1 vs IA") {{
-                        alignCenter();
-                        valignCenter();
-                        visibleToMouse(true);
-                        interactOnClick("startGame1vsIA()");
-                    }});
-                }});
 
-                panel(new PanelBuilder("panel_mid2") {{
-                    height("5%");
-                    width("100%");
-                    childLayoutCenter();
-                    control(new ButtonBuilder("OneToOneButton", "Jouer en 1 vs 1") {{
-                        alignCenter();
-                        valignCenter();
-                        visibleToMouse(true);
-                        interactOnClick("startGame1vs1()");
-                    }});
-                }});
-                panel(new PanelBuilder("panel_mid3") {{
-                    height("5%");
-                    width("100%");
-                    childLayoutCenter();
-                    control(new ButtonBuilder("NetworkButton", "Jouer en réseau") {{
-                        alignCenter();
-                        valignCenter();
-                        visibleToMouse(true);
-                        interactOnClick("startGameNetwork()");
-                    }});
-                }});
-                panel(new PanelBuilder("panel_mid4") {{
-                    height("5%");
-                    width("100%");
-                    childLayoutCenter();
-                    control(new ButtonBuilder("QuitButton", "Quitter") {{
-                        alignCenter();
-                        valignCenter();
-                        visibleToMouse(true);
-                        interactOnClick("quitGame()");
-                    }});
-                }});
-                panel(new PanelBuilder("panel_bottom") {{
-                    height("25%");
-                    width("75%");
-                    childLayoutCenter();
-
-                }});
-            }});
-        }}.build(nifty));
 
         nifty.gotoScreen("start");
 
@@ -132,8 +65,6 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     @Override
     public void onStartScreen() {
         // Called when the screen gets shown
-        nifty.getCurrentScreen().findNiftyControl("dummy", Label.class).setFocus();
-        nifty.getCurrentScreen().setDefaultFocusElement("dummy");
 
 
     }
@@ -144,20 +75,40 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     }
 
 
-    @SuppressWarnings({"unused", "RedundantCast"})
+
+
     public void quitGame() {
-        // Add code to quit game
-        ((MainStart) getApplication()).stop();
+        if (app != null) {
+            app.stop();
+        } else {
+            System.out.println("Application is null, cannot stop the game.");
+        }
     }
-    @SuppressWarnings("unused")
+
     public void startGame1vsIA() {
-        // Add code to start game
+        nifty.gotoScreen("emptyScreen");
+
+        AppSettings actualSettings = getApplication().getContext().getSettings();
+        int width = actualSettings.getWidth();
+        int height = actualSettings.getHeight();
+
+
+        AppSettings settings = new AppSettings(true);
+        settings.setUseJoysticks(true);
+        settings.setFullscreen(true);
+        settings.setResolution(width, height);
+        Main appjeu = new Main();
+        appjeu.setSettings(settings);
+        appjeu.setShowSettings(false);
+        appjeu.start();
+
+
     }
-    @SuppressWarnings("unused")
+
     public void startGame1vs1() {
         // Add code to start game
     }
-    @SuppressWarnings("unused")
+
     public void startGameNetwork() {
         // Add code to start game
     }

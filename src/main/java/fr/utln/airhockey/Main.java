@@ -2,6 +2,7 @@ package fr.utln.airhockey;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
+import com.jme3.audio.AudioRenderer;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
@@ -10,6 +11,7 @@ import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.math.*;
@@ -20,6 +22,7 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
+import de.lessvoid.nifty.Nifty;
 
 
 public class Main extends SimpleApplication implements ActionListener {
@@ -57,6 +60,27 @@ public static void main(String[] args) {
 
     @Override
     public void simpleInitApp() {
+
+    // Nifty GUI
+        StartScreenState startScreenState = new StartScreenState();
+        startScreenState.initialize(this);
+        NiftyJmeDisplay niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
+                assetManager,
+                inputManager,
+                audioRenderer,
+                guiViewPort);
+
+        Nifty nifty = niftyDisplay.getNifty();
+        inputManager.setCursorVisible(true);
+
+        nifty.fromXml("Interface/Screens.xml", "start");
+
+
+
+        nifty.gotoScreen("start");
+
+        guiViewPort.addProcessor(niftyDisplay);
+
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
@@ -108,9 +132,7 @@ public static void main(String[] args) {
         //bulletAppState.getPhysicsSpace().addCollisionListener(collisionListener);
 
         setUpKeys();
-        inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
-        // Définir l'écouteur d'action pour le clic gauche
-        inputManager.addListener(actionListener, "LeftClick");
+
 
         /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
@@ -287,15 +309,15 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(wall_phy1);
 
         RigidBodyControl wall_phy2 = new RigidBodyControl(0.0f);
-        wall_geo4.addControl(wall_phy2);
+        wall_geo2.addControl(wall_phy2);
         bulletAppState.getPhysicsSpace().add(wall_phy2);
 
         RigidBodyControl wall_phy3 = new RigidBodyControl(0.0f);
-        wall_geo5.addControl(wall_phy3);
+        wall_geo3.addControl(wall_phy3);
         bulletAppState.getPhysicsSpace().add(wall_phy3);
 
         RigidBodyControl wall_phy4 = new RigidBodyControl(0.0f);
-        wall_geo6.addControl(wall_phy4);
+        wall_geo4.addControl(wall_phy4);
         bulletAppState.getPhysicsSpace().add(wall_phy4);
 
         RigidBodyControl wall_phy5 = new RigidBodyControl(0.0f);
@@ -319,6 +341,7 @@ public static void main(String[] args) {
         ans[3] = wall_phy4;
         ans[4] = wall_phy5;
         ans[5] = wall_phy6;
+
         return ans;
     }
 
@@ -445,6 +468,11 @@ public static void main(String[] args) {
         inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
         inputManager.addListener(actionListener, "Click");
+
+        inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
+        // Définir l'écouteur d'action pour le clic gauche
+        inputManager.addListener(actionListener, "LeftClick");
+
         inputManager.addJoystickConnectionListener(new JoystickConnectionListener() {
             @Override
             public void onConnected(Joystick joystick) {
