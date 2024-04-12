@@ -5,10 +5,11 @@ import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.collision.CollisionResults;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.material.Material;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
@@ -18,9 +19,6 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.texture.Texture;
 
-import java.util.Currency;
-
-
 public class main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
         main app = new main();
@@ -29,10 +27,10 @@ public static void main(String[] args) {
 
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
-    private Node player;
+    private RigidBodyControl player;
+    private RigidBodyControl palet;
 
-    final private Vector3f walkDirection = new Vector3f();
-    private boolean left = false, right = false, up = false, down = false, click = false;
+    private boolean click = false;
 
     final private Vector3f camDir = new Vector3f();
     final private Vector3f camLeft = new Vector3f();
@@ -43,8 +41,6 @@ public static void main(String[] args) {
 
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
-    private Boolean isRunning = true;
-    private Vector2f lastCursorPosition = new Vector2f();
 
     static{
         floor = new Box(30f, 0.1f, 15f);
@@ -61,28 +57,27 @@ public static void main(String[] args) {
 
 
 
+
         initMaterials();
         initWalls();
         initFloor();
-        initPalet();
+        palet = initPalet();
         player = initRaquette();
+
+        //RigidBodyControl[] pomme;
+        //pomme = initWalls();
+        //MyCollisionListener collisionListener = new MyCollisionListener(player,pomme[0],pomme[1],pomme[2],pomme[3]);
+        //bulletAppState.getPhysicsSpace().addCollisionListener(collisionListener);
+
         setUpKeys();
+        inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
+        // Définir l'écouteur d'action pour le clic gauche
+        inputManager.addListener(actionListener, "LeftClick");
 
         /** Configure cam to look at scene */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
-        //player = new CharacterControl(capsuleShape, 0.05f);
-        //player.setJumpSpeed(20);
-        //player.setFallSpeed(30);
-        //player.setGravity(0);
-        //player.setPhysicsLocation(new Vector3f(0, 75, 0));
-
-
-        //bulletAppState.getPhysicsSpace().add(player);
-
-
-
 
     }
 
@@ -107,7 +102,7 @@ public static void main(String[] args) {
         floor_mat.setTexture("ColorMap", tex3);
     }
 
-    public void initPalet(){
+    public RigidBodyControl initPalet(){
         float radius = 1.0f; // Rayon du cylindre
         float height = 1f; // Hauteur du cylindre
         int radialSamples = 32; // Nombre d'échantillons radiaux pour le cylindre (doit être >= 3)
@@ -115,12 +110,10 @@ public static void main(String[] args) {
         boolean closed = true; // Le cylindre est fermé à une extrémité
 
         Geometry geom = new Geometry("Cylinder", new Cylinder( axialSamples, radialSamples, radius, height, closed));
-        // Créer un matériau pour le cylindre (par exemple, rouge)
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
 
         geom.rotate(FastMath.HALF_PI, 0, 0);
         mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
-        geom.setMaterial(mat);
         geom.setMaterial(mat);                   // set the cube's material
 
 
@@ -135,36 +128,25 @@ public static void main(String[] args) {
         box_phy.setRestitution(1.0f);
         box_phy.setFriction(0f);
 
-        /*bulletAppState.getPhysicsSpace().addCollisionListener(new PhysicsCollisionListener() {
-            @Override
-            public void collision(PhysicsCollisionEvent event) {
-                if (event.getObjectA() == player && event.getObjectB() == box_phy ||
-                        event.getObjectA() == box_phy && event.getObjectB() == player) {
-                    // Si la caméra entre en collision avec le cube
-                    // Déplacez le cube avec la caméra en ajustant sa position
-                    Vector3f camDirection = cam.getDirection().mult(25); // Vous pouvez ajuster le facteur multiplicatif selon vos besoins
-                    box_phy.setLinearVelocity(camDirection);
-                }
-            }
-        });
-*/
         rootNode.attachChild(geom);
+
+        return box_phy;
     }
 
-    public Node initRaquette(){
+    public RigidBodyControl initRaquette(){
 
         float cylinderHeight = 1.5f;
         float sphereRadius = 0.5f;
 
-        // Créer le cylindre
-        Cylinder cylinderMesh = new Cylinder(32, 32, 1.5f, cylinderHeight, true);
+        // je crée le cylindre
+        Cylinder cylinderMesh = new Cylinder(32, 32, 2f, cylinderHeight, true);
         Geometry cylinderGeom = new Geometry("Cylinder", cylinderMesh);
         Material cylinderMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         cylinderMat.setColor("Color", ColorRGBA.Blue);
         cylinderGeom.setMaterial(cylinderMat);
 
 
-        // Créer la sphère
+        // je crée la sphère
         Sphere sphereMesh = new Sphere(32, 32, sphereRadius);
         Geometry sphereGeom = new Geometry("Sphere", sphereMesh);
         Material sphereMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
@@ -172,47 +154,37 @@ public static void main(String[] args) {
         sphereGeom.setMaterial(sphereMat);
 
 
-        // Positionner la sphère au sommet du cylindre
-
+        // je positionne la sphère au sommet du cylindre
         sphereGeom.setLocalTranslation(new Vector3f(0, cylinderHeight + sphereRadius, 0));
 
         cylinderGeom.setLocalTranslation(0, 0f, 0);
         sphereGeom.setLocalTranslation(0, 1.2f, 0f);
         cylinderGeom.rotate(FastMath.HALF_PI, 0, 0);
 
-
-        RigidBodyControl object_phy = new RigidBodyControl(0.0f);
-
-
+        //tu crées tes 2 objets à lier ...... dans mon cas cylinderGeom et sphereGeom
         Node compositeNode = new Node("CompositeObject");
         compositeNode.attachChild(cylinderGeom);
         compositeNode.attachChild(sphereGeom);
-        compositeNode.move(4f, 4f, 4f);
+
+        //je bouge les 2 objets liées en même temps en utilisante le composite node
+        compositeNode.move(4f, 2f, 4f);
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /** Add physical brick to physics space. */
+
+
         compositeNode.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
-        box_phy.setAngularFactor(0f);
-        box_phy.setRestitution(1.0f);
-        box_phy.setFriction(1f);
+        box_phy.setRestitution(0.0f);
+        box_phy.setFriction(0f);
 
-        // Ajouter le nœud composite à la scène
         rootNode.attachChild(compositeNode);
-        return compositeNode;
+        return box_phy;
 
     }
-/*
-    public void onAnalog(String name, float value, float tpf) {
-        if (name.equals("MouseMovement")) {
-            float speed = 0.1f;
-            compositeNode.move(value * speed, 0, 0); // Modifie la position de la raquette selon le mouvement horizontal de la souris
-            compositeNode.move(0, -value * speed, 0); // Modifie la position de la raquette selon le mouvement vertical de la souris
-        }
-    }
-*/
 
-    public void initWalls(){
+
+    public RigidBodyControl[] initWalls(){
+        RigidBodyControl[] ans = new RigidBodyControl[4];
         Box wall = new Box(30f, 1.5f, 5f);
         Box wall2 = new Box(5f, 1.5f, 15f);
         Box wall3 = new Box(5f, 1.5f, 15f);
@@ -258,6 +230,11 @@ public static void main(String[] args) {
         wall_phy2.setRestitution(1.0f);
         wall_phy3.setRestitution(1.0f);
         wall_phy4.setRestitution(1.0f);
+        ans[0] = wall_phy;
+        ans[1] = wall_phy2;
+        ans[2] = wall_phy3;
+        ans[3] = wall_phy4;
+        return ans;
     }
 
     public void initFloor() {
@@ -273,49 +250,83 @@ public static void main(String[] args) {
 
 
     private void setUpKeys() {
-        inputManager.addMapping("Left", new MouseAxisTrigger(MouseInput.AXIS_X, false));
         inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
-        inputManager.addMapping("Right", new MouseAxisTrigger(MouseInput.AXIS_X, true));
-        inputManager.addMapping("Up", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
-        inputManager.addMapping("Down", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
-        //inputManager.addListener(analogListener, "Left", "Right", "Up","Down");
-        lastCursorPosition.set(inputManager.getCursorPosition());
-
     }
-/*
-    private AnalogListener analogListener = new AnalogListener() {
-        @Override
-        public void onAnalog(String name, float keyPressed, float tpf) {
-            if (true) {
 
-            }
-        }
-    };
-*/
+
 
 
     public void simpleUpdate(float tpf) {
-    // Calculer le déplacement de la souris depuis la dernière frame
+
+        Vector3f bloqueRaquette;
+        Vector3f bloquePalet;
+
+        Vector3f rotatePalet;
+
+        player.setAngularVelocity(new Vector3f(0f, 0f, 0f));
+        bloqueRaquette = player.getLinearVelocity();
+        player.setLinearVelocity(new Vector3f(bloqueRaquette.x,0f,bloqueRaquette.z));
+
+        rotatePalet = palet.getAngularVelocity();
+        palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
+        bloquePalet = palet.getLinearVelocity();
+        palet.setLinearVelocity(new Vector3f(bloquePalet.x,0f,bloquePalet.z));
+
+
         if (click == true) {
-            Vector2f currentCursorPosition = inputManager.getCursorPosition();
-            System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
-            player.move(currentCursorPosition.getX(), currentCursorPosition.getY(), 0);
-            //player.
+
+            // Reset results list.
+            CollisionResults results = new CollisionResults();
+            // Convert screen click to 3d position
+            Vector2f click2d = inputManager.getCursorPosition();
+            Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
+            Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
+            // Aim the ray from the clicked spot forwards.
+            Ray ray = new Ray(click3d, dir);
+            // Collect intersections between ray and all nodes in results list.
+            rootNode.collideWith(ray, results);
+            for (int i = 0; i < results.size(); i++) {
+                //On ne garde que la collision avec le sol
+                if (results.getCollision(i).getGeometry().getName() == "Floor") {
+
+
+                    Vector3f posSouris = results.getCollision(i).getContactPoint();
+                    Vector3f posPalet = player.getPhysicsLocation();
+
+                    // Pour eviter que la raquette est Parkinson
+                    if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
+                        Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
+                        float distance = direction.length();
+                        // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                        direction = direction.normalize();
+                        float speedMultiplier = Math.min(distance / 6, 1.0f);
+                        // Appliquer le déplacement au joueur
+                        player.setLinearVelocity(direction.mult(speedMultiplier * 75)); // Multiplier par une vitesse de déplacement
+                    }
+                    else {
+                        // Arreter le déplacement du joueur
+                        player.setLinearVelocity(new Vector3f(0f,0f,0f));
+                    }
+                }
+            }
         }
     }
 
-    @Override
-    public void onAction(String binding, boolean value, float tpf) {
-        if (binding.equals("Left")) {
-            if (value) { left = true; } else { left = false; }
-        } else if (binding.equals("Right")) {
-            if (value) { right = true; } else { right = false; }
-        } else if (binding.equals("Click")) {
-            if (value) { click = true; } else { click = false; }
-        } else if (binding.equals("Up")) {
-            if (value) { up = true; } else { up = false; }
-        } else if (binding.equals("Down")) {
-            if (value) { down = true; } else { down = false; }
-        }
+    public void onAction(String a, boolean b, float tpf) {
+
     }
+
+    private ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if (name.equals("LeftClick") && isPressed) {
+                click = true;
+            }
+            //Fin du clic gauche
+            else {
+                click = false;
+            }
+        }
+    };
+
 }
