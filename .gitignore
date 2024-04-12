@@ -37,3 +37,5 @@ build/
 ### Maven ###
 .mvn
 site
+
+*.xcf

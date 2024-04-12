@@ -9,6 +9,7 @@ import com.jme3.collision.CollisionResults;
 import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.math.*;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
@@ -41,9 +42,10 @@ public static void main(String[] args) {
     final private Vector3f camLeft = new Vector3f();
     /** Prepare Materials */
     private Material wall_mat;
-    private Material stone_mat;
+    private Material red_cage_mat;
+    private Material blue_cage_mat;
+    private Material invisible_cage_mat;
     private Material floor_mat;
-
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
     private Boolean isRunning = true;
@@ -52,15 +54,16 @@ public static void main(String[] args) {
 
     static{
         floor = new Box(30f, 0.1f, 15f);
-        floor.scaleTextureCoordinates(new Vector2f(3, 6));
     }
 
     @Override
     public void simpleInitApp() {
-        /** Set up Physics Game */
+        /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         flyCam.setEnabled(false);
+        flyCam.setMoveSpeed(45);
+
         bulletAppState.setDebugEnabled(true);
 
         // Create two cam to render the scene
@@ -94,12 +97,13 @@ public static void main(String[] args) {
 
         initMaterials();
         initWalls();
+        initCages();
         initFloor();
         initPalet();
         player = initRaquette();
         setUpKeys();
 
-        /** Configure cam to look at scene */
+        /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
@@ -114,29 +118,37 @@ public static void main(String[] args) {
 
         lastCursorPosition.set(inputManager.getCursorPosition());
 
-
-
     }
 
     public void initMaterials() {
         wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key = new TextureKey("Textures/Terrain/BrickWall/BrickWall.jpg");
+        TextureKey key = new TextureKey("Textures/Terrain/wall.png");
         key.setGenerateMips(true);
         Texture tex = assetManager.loadTexture(key);
         wall_mat.setTexture("ColorMap", tex);
 
-        stone_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key2 = new TextureKey("Textures/Terrain/Rock/Rock.PNG");
+        red_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        TextureKey key2 = new TextureKey("Textures/Terrain/cage_rouge.png");
         key2.setGenerateMips(true);
         Texture tex2 = assetManager.loadTexture(key2);
-        stone_mat.setTexture("ColorMap", tex2);
+        red_cage_mat.setTexture("ColorMap", tex2);
+
+        blue_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        TextureKey key4 = new TextureKey("Textures/Terrain/cage_bleue.png");
+        key4.setGenerateMips(true);
+        Texture tex4 = assetManager.loadTexture(key4);
+        blue_cage_mat.setTexture("ColorMap", tex4);
 
         floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        TextureKey key3 = new TextureKey("Textures/Terrain/Pond/Pond.jpg");
+        TextureKey key3 = new TextureKey("Textures/Terrain/table_base.png");
         key3.setGenerateMips(true);
         Texture tex3 = assetManager.loadTexture(key3);
-        tex3.setWrap(Texture.WrapMode.Repeat);
+        tex3.setWrap(Texture.WrapMode.EdgeClamp);
         floor_mat.setTexture("ColorMap", tex3);
+
+        invisible_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        invisible_cage_mat.setColor("Color", new ColorRGBA(1, 1, 1, 0));
+        invisible_cage_mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
     }
 
     public void initPalet(){
@@ -160,7 +172,7 @@ public static void main(String[] args) {
 
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /** Add physical brick to physics space. */
+        /* Add physical brick to physics space. */
         geom.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
         box_phy.setAngularFactor(0f);
@@ -237,51 +249,154 @@ public static void main(String[] args) {
 
 
     public void initWalls(){
-        Box wall = new Box(30f, 1.5f, 5f);
-        Box wall2 = new Box(5f, 1.5f, 15f);
-        Box wall3 = new Box(5f, 1.5f, 15f);
-        Box wall4 = new Box(30f, 1.5f, 5f);
-        Geometry wall_geo = new Geometry("Wall", wall);
+        /* Initialization of walls */
+        Box wall1 = new Box(31f, 1.5f, 1f);
+        Box wall2 = new Box(31f, 1.5f, 1f);
+        Box wall3 = new Box(2f, 1.2f, 4.5f);
+        Box wall4 = new Box(2f, 1.2f, 4.5f);
+        Box wall5 = new Box(2f, 1.2f, 4.5f);
+        Box wall6 = new Box(2f, 1.2f, 4.5f);
+        Geometry wall_geo1 = new Geometry("Wall1", wall1);
         Geometry wall_geo2 = new Geometry("Wall2", wall2);
         Geometry wall_geo3 = new Geometry("Wall3", wall3);
         Geometry wall_geo4 = new Geometry("Wall4", wall4);
-        Material wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        wall_geo.move(0, 0, -15);
-        wall_geo2.move(-30, 0, 0);
-        wall_geo3.move(30, 0, 0);
-        wall_geo4.move(0, 0, 15);
-        wall_mat.setColor("Color", ColorRGBA.Blue);
-        wall_geo.setMaterial(wall_mat);
+        Geometry wall_geo5 = new Geometry("Wall5", wall5);
+        Geometry wall_geo6 = new Geometry("Wall6", wall6);
+        /* Move the walls to the correct position */
+        wall_geo1.move(0, 0, -15);
+        wall_geo2.move(0, 0, 15);
+        wall_geo3.move(-29, 0, -9.5f);
+        wall_geo4.move(29, 0, 9.5f);
+        wall_geo5.move(-29, 0, 9.5f);
+        wall_geo6.move(29, 0, -9.5f);
+
+        wall_geo1.setMaterial(wall_mat);
         wall_geo2.setMaterial(wall_mat);
         wall_geo3.setMaterial(wall_mat);
         wall_geo4.setMaterial(wall_mat);
+        wall_geo5.setMaterial(wall_mat);
+        wall_geo6.setMaterial(wall_mat);
 
-        rootNode.attachChild(wall_geo);
+        rootNode.attachChild(wall_geo1);
         rootNode.attachChild(wall_geo2);
         rootNode.attachChild(wall_geo3);
         rootNode.attachChild(wall_geo4);
+        rootNode.attachChild(wall_geo5);
+        rootNode.attachChild(wall_geo6);
 
-
-        RigidBodyControl wall_phy = new RigidBodyControl(0.0f);
-        wall_geo.addControl(wall_phy);
-        bulletAppState.getPhysicsSpace().add(wall_phy);
+        /* Make the walls physical with mass 0.0f */
+        RigidBodyControl wall_phy1 = new RigidBodyControl(0.0f);
+        wall_geo1.addControl(wall_phy1);
+        bulletAppState.getPhysicsSpace().add(wall_phy1);
 
         RigidBodyControl wall_phy2 = new RigidBodyControl(0.0f);
-        wall_geo2.addControl(wall_phy2);
+        wall_geo4.addControl(wall_phy2);
         bulletAppState.getPhysicsSpace().add(wall_phy2);
 
         RigidBodyControl wall_phy3 = new RigidBodyControl(0.0f);
-        wall_geo3.addControl(wall_phy3);
+        wall_geo5.addControl(wall_phy3);
         bulletAppState.getPhysicsSpace().add(wall_phy3);
 
         RigidBodyControl wall_phy4 = new RigidBodyControl(0.0f);
-        wall_geo4.addControl(wall_phy4);
+        wall_geo6.addControl(wall_phy4);
         bulletAppState.getPhysicsSpace().add(wall_phy4);
 
-        wall_phy.setRestitution(1.0f);
+        RigidBodyControl wall_phy5 = new RigidBodyControl(0.0f);
+        wall_geo5.addControl(wall_phy5);
+        bulletAppState.getPhysicsSpace().add(wall_phy5);
+
+        RigidBodyControl wall_phy6 = new RigidBodyControl(0.0f);
+        wall_geo6.addControl(wall_phy6);
+        bulletAppState.getPhysicsSpace().add(wall_phy6);
+
+        wall_phy1.setRestitution(1.0f);
         wall_phy2.setRestitution(1.0f);
         wall_phy3.setRestitution(1.0f);
         wall_phy4.setRestitution(1.0f);
+        wall_phy5.setRestitution(1.0f);
+        wall_phy6.setRestitution(1.0f);
+    }
+
+    public void initCages(){
+        /* Initialization of the red cage */
+        Box red_cage_back = new Box(0.1f, 1.2f, 5f);
+        Box red_cage_top = new Box(2f, 0.1f, 5f);
+
+        /* Invisible cage to check the collision with palet (red side) */
+        Box red_cage_invisible = new Box(2f, 1.2f, 5f);
+
+        /* Initialization of the blue cage */
+        Box blue_cage_back = new Box(0.1f, 1.2f, 5f);
+        Box blue_cage_top = new Box(2f, 0.1f, 5f);
+
+        /* Invisible cage to check the collision with palet (blue side) */
+        Box blue_cage_invisible = new Box(2f, 1.2f, 5f);
+
+        /* Geometries (red then blue) */
+        Geometry red_cage_back_geo = new Geometry("Red Cage Back", red_cage_back);
+        Geometry red_cage_top_geo = new Geometry("Red Cage Top", red_cage_top);
+
+        Geometry red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
+
+        Geometry blue_cage_back_geo = new Geometry("Blue Cage Back", blue_cage_back);
+        Geometry blue_cage_top_geo = new Geometry("Blue Cage Top", blue_cage_top);
+
+        Geometry blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
+
+        /* Move the geometries to the correct position */
+        red_cage_back_geo.move(-30.9f, 0, 0);
+        red_cage_top_geo.move(-29, 1.1f, 0);
+
+        red_cage_invisible_geo.move(-29, 0, 0);
+
+        blue_cage_back_geo.move(30.9f, 0, 0);
+        blue_cage_top_geo.move(29, 1.1f, 0);
+
+        blue_cage_invisible_geo.move(29, 0, 0);
+
+        /* Set the materials */
+        red_cage_back_geo.setMaterial(wall_mat);
+        red_cage_top_geo.setMaterial(red_cage_mat);
+
+        red_cage_invisible_geo.setMaterial(invisible_cage_mat);
+
+        blue_cage_back_geo.setMaterial(wall_mat);
+        blue_cage_top_geo.setMaterial(blue_cage_mat);
+
+        blue_cage_invisible_geo.setMaterial(invisible_cage_mat);
+
+        /* Attach to root */
+        rootNode.attachChild(red_cage_back_geo);
+        rootNode.attachChild(red_cage_top_geo);
+
+        rootNode.attachChild(red_cage_invisible_geo);
+
+        rootNode.attachChild(blue_cage_back_geo);
+        rootNode.attachChild(blue_cage_top_geo);
+
+        rootNode.attachChild(blue_cage_invisible_geo);
+
+        /* Make the cages physical with mass 0.0f */
+        RigidBodyControl red_cage_top_phy = new RigidBodyControl(0.0f);
+        red_cage_top_geo.addControl(red_cage_top_phy);
+        bulletAppState.getPhysicsSpace().add(red_cage_top_phy);
+
+        RigidBodyControl red_cage_back_phy = new RigidBodyControl(0.0f);
+        red_cage_back_geo.addControl(red_cage_back_phy);
+        bulletAppState.getPhysicsSpace().add(red_cage_back_phy);
+
+        RigidBodyControl blue_cage_top_phy = new RigidBodyControl(0.0f);
+        blue_cage_top_geo.addControl(blue_cage_top_phy);
+        bulletAppState.getPhysicsSpace().add(blue_cage_top_phy);
+
+        RigidBodyControl blue_cage_back_phy = new RigidBodyControl(0.0f);
+        blue_cage_back_geo.addControl(blue_cage_back_phy);
+        bulletAppState.getPhysicsSpace().add(blue_cage_back_phy);
+
+        red_cage_top_phy.setRestitution(1.0f);
+        red_cage_back_phy.setRestitution(1.0f);
+        blue_cage_back_phy.setRestitution(1.0f);
+        blue_cage_top_phy.setRestitution(1.0f);
     }
 
     public void initFloor() {
@@ -432,6 +547,5 @@ public static void main(String[] args) {
 
     @Override
     public void onAction(String s, boolean b, float v) {
-
     }
 }
