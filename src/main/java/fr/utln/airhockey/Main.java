@@ -5,8 +5,10 @@ import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
@@ -54,7 +56,7 @@ public static void main(String[] args) {
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-        flyCam.setEnabled(true);
+        flyCam.setEnabled(false);
         flyCam.setMoveSpeed(45);
 
         initMaterials();
@@ -197,15 +199,6 @@ public static void main(String[] args) {
         return compositeNode;
 
     }
-/*
-    public void onAnalog(String name, float value, float tpf) {
-        if (name.equals("MouseMovement")) {
-            float speed = 0.1f;
-            compositeNode.move(value * speed, 0, 0); // Modifie la position de la raquette selon le mouvement horizontal de la souris
-            compositeNode.move(0, -value * speed, 0); // Modifie la position de la raquette selon le mouvement vertical de la souris
-        }
-    }
-*/
 
     public void initWalls(){
         /* Initialization of walls */
@@ -376,21 +369,21 @@ public static void main(String[] args) {
         inputManager.addMapping("Right", new MouseAxisTrigger(MouseInput.AXIS_X, true));
         inputManager.addMapping("Up", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
         inputManager.addMapping("Down", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
-        //inputManager.addListener(analogListener, "Left", "Right", "Up","Down");
+        inputManager.addMapping("1 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD1));
+        inputManager.addMapping("2 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD2));
+        inputManager.addListener(actionListener, "1 numpad", "2 numpad");
         lastCursorPosition.set(inputManager.getCursorPosition());
 
     }
-/*
-    private AnalogListener analogListener = new AnalogListener() {
-        @Override
-        public void onAnalog(String name, float keyPressed, float tpf) {
-            if (true) {
 
-            }
+    final private ActionListener actionListener = (name, keyPressed, tpf) -> {
+        if (name.equals("1 numpad")) {
+            System.out.println("1 numpad entered");
+        }
+        if (name.equals("2 numpad")) {
+            System.out.println("2 numpad entered");
         }
     };
-*/
-
 
     public void simpleUpdate(float tpf) {
     // Calculer le déplacement de la souris depuis la dernière frame
