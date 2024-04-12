@@ -22,12 +22,14 @@ import com.jme3.texture.Texture;
 
 
 public class Main extends SimpleApplication implements ActionListener {
-public static void main(String[] args) {
+    public static void main(String[] args) {
         Main app = new Main();
         app.start();
     }
 
-    /** Prepare the Physics Application State (jBullet) */
+    /**
+     * Prepare the Physics Application State (jBullet)
+     */
     private BulletAppState bulletAppState;
     private Node player;
 
@@ -36,18 +38,22 @@ public static void main(String[] args) {
 
     final private Vector3f camDir = new Vector3f();
     final private Vector3f camLeft = new Vector3f();
-    /** Prepare Materials */
+    /**
+     * Prepare Materials
+     */
     private Material wall_mat;
     private Material red_cage_mat;
     private Material blue_cage_mat;
     private Material invisible_cage_mat;
     private Material floor_mat;
-    /** Prepare geometries for bricks and cannonballs. */
+    /**
+     * Prepare geometries for bricks and cannonballs.
+     */
     private static final Box floor;
     private Boolean isRunning = true;
     private final Vector2f lastCursorPosition = new Vector2f();
 
-    static{
+    static {
         floor = new Box(30f, 0.1f, 15f);
     }
 
@@ -104,14 +110,14 @@ public static void main(String[] args) {
         invisible_cage_mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
     }
 
-    public void initPalet(){
+    public void initPalet() {
         float radius = 1.0f; // Rayon du cylindre
         float height = 1f; // Hauteur du cylindre
         int radialSamples = 32; // Nombre d'échantillons radiaux pour le cylindre (doit être >= 3)
         int axialSamples = 2; // Nombre d'échantillons axiaux pour le cylindre (doit être >= 2)
         boolean closed = true; // Le cylindre est fermé à une extrémité
 
-        Geometry geom = new Geometry("Cylinder", new Cylinder( axialSamples, radialSamples, radius, height, closed));
+        Geometry geom = new Geometry("Cylinder", new Cylinder(axialSamples, radialSamples, radius, height, closed));
         // Créer un matériau pour le cylindre (par exemple, rouge)
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
 
@@ -119,9 +125,6 @@ public static void main(String[] args) {
         mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
         geom.setMaterial(mat);
         geom.setMaterial(mat);                   // set the cube's material
-
-
-
 
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
@@ -148,7 +151,7 @@ public static void main(String[] args) {
         rootNode.attachChild(geom);
     }
 
-    public Node initRaquette(){
+    public Node initRaquette() {
 
         float cylinderHeight = 1.5f;
         float sphereRadius = 0.5f;
@@ -200,10 +203,10 @@ public static void main(String[] args) {
 
     }
 
-    public void initWalls(){
+    public void initWalls() {
         /* Initialization of walls */
-        Box wall1 = new Box(31f, 1.5f, 1f);
-        Box wall2 = new Box(31f, 1.5f, 1f);
+        Box wall1 = new Box(30.9f, 1.5f, 1f);
+        Box wall2 = new Box(30.9f, 1.5f, 1f);
         Box wall3 = new Box(2f, 1.2f, 4.5f);
         Box wall4 = new Box(2f, 1.2f, 4.5f);
         Box wall5 = new Box(2f, 1.2f, 4.5f);
@@ -269,7 +272,7 @@ public static void main(String[] args) {
         wall_phy6.setRestitution(1.0f);
     }
 
-    public void initCages(){
+    public void initCages() {
         /* Initialization of the red cage */
         Box red_cage_back = new Box(0.1f, 1.2f, 5f);
         Box red_cage_top = new Box(2f, 0.1f, 5f);
@@ -378,38 +381,16 @@ public static void main(String[] args) {
 
     final private ActionListener actionListener = (name, keyPressed, tpf) -> {
         if (name.equals("1 numpad")) {
-            System.out.println("1 numpad entered");
+            cam.setLocation(new Vector3f(0, 75f, 0f));
+            cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         }
         if (name.equals("2 numpad")) {
-            System.out.println("2 numpad entered");
+            cam.setLocation(new Vector3f(55, 45f, 0f));
+            cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         }
     };
 
-    public void simpleUpdate(float tpf) {
-    // Calculer le déplacement de la souris depuis la dernière frame
-        if (click) {
-            Vector2f currentCursorPosition = inputManager.getCursorPosition();
-            System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
-            player.move(currentCursorPosition.getX(), currentCursorPosition.getY(), 0);
-        }
-    }
-
     @Override
-    public void onAction(String binding, boolean value, float tpf) {
-        if (binding.equals("Left")) {
-            left = value;
-        }
-        if (binding.equals("Right")) {
-            right = value;
-        }
-        if (binding.equals("Click")) {
-            click = value;
-        }
-        if (binding.equals("Up")) {
-            up = value;
-        }
-        if (binding.equals("Down")) {
-            down = value;
-        }
+    public void onAction(String s, boolean b, float v) {
     }
 }
