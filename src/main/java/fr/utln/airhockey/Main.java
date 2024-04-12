@@ -5,23 +5,29 @@ import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.input.MouseInput;
-import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.collision.CollisionResults;
+import com.jme3.input.*;
+import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.*;
+import com.jme3.renderer.Camera;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
 
 
 public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
+        AppSettings settings = new AppSettings(true);
+        settings.setUseJoysticks(true);
         Main app = new Main();
+        app.setSettings(settings);
         app.start();
     }
 
@@ -43,7 +49,8 @@ public static void main(String[] args) {
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
     private Boolean isRunning = true;
-    private final Vector2f lastCursorPosition = new Vector2f();
+    private Vector2f lastCursorPosition = new Vector2f();
+    private float sensitivity = 0.5f; // Ajustez cette valeur selon vos besoins
 
     static{
         floor = new Box(30f, 0.1f, 15f);
@@ -54,8 +61,39 @@ public static void main(String[] args) {
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-        flyCam.setEnabled(true);
+        flyCam.setEnabled(false);
         flyCam.setMoveSpeed(45);
+
+        bulletAppState.setDebugEnabled(true);
+
+        // Create two cam to render the scene
+        Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
+        Camera cam2 = new Camera(settings.getWidth(), settings.getHeight());
+
+        // Create two viewports
+        ViewPort viewPort1 = renderManager.createMainView("Left View", cam1);
+        viewPort1.setClearFlags(true, true, true);
+        viewPort1.attachScene(rootNode);
+
+        ViewPort viewPort2 = renderManager.createMainView("Right View", cam2);
+        viewPort2.setClearFlags(true, true, true);
+        viewPort2.attachScene(rootNode);
+
+        cam1.setViewPort( 0.0f , 0.5f   ,   0.0f , 1.0f );
+        cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 1.0f );
+        cam1.setLocation(new Vector3f(0, 75f, 0f));
+        cam1.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
+        cam2.setLocation(new Vector3f(0, 75f, 0f));
+        cam2.lookAt(new Vector3f(1, 0, 0), Vector3f.UNIT_Y);
+        cam1.setFrustumPerspective(45f, (float) (cam1.getWidth()/2) / cam1.getHeight(), 0.01f, 1000f);
+        cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
+        cam1.update();
+        cam2.update();
+
+
+
+
+        listerManettes();
 
         initMaterials();
         initWalls();
@@ -69,6 +107,17 @@ public static void main(String[] args) {
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
+        //player = new CharacterControl(capsuleShape, 0.05f);
+        //player.setJumpSpeed(20);
+        //player.setFallSpeed(30);
+        //player.setGravity(0);
+        //player.setPhysicsLocation(new Vector3f(0, 75, 0));
+
+
+        //bulletAppState.getPhysicsSpace().add(player);
+
+        lastCursorPosition.set(inputManager.getCursorPosition());
+
     }
 
     public void initMaterials() {
@@ -176,16 +225,14 @@ public static void main(String[] args) {
         cylinderGeom.rotate(FastMath.HALF_PI, 0, 0);
 
 
-        RigidBodyControl object_phy = new RigidBodyControl(0.0f);
-
 
         Node compositeNode = new Node("CompositeObject");
         compositeNode.attachChild(cylinderGeom);
         compositeNode.attachChild(sphereGeom);
         compositeNode.move(4f, 4f, 4f);
 
-        RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /* Add physical brick to physics space. */
+        RigidBodyControl box_phy = new RigidBodyControl(0f);
+        /** Add physical brick to physics space. */
         compositeNode.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
         box_phy.setAngularFactor(0f);
@@ -197,15 +244,9 @@ public static void main(String[] args) {
         return compositeNode;
 
     }
-/*
-    public void onAnalog(String name, float value, float tpf) {
-        if (name.equals("MouseMovement")) {
-            float speed = 0.1f;
-            compositeNode.move(value * speed, 0, 0); // Modifie la position de la raquette selon le mouvement horizontal de la souris
-            compositeNode.move(0, -value * speed, 0); // Modifie la position de la raquette selon le mouvement vertical de la souris
-        }
-    }
-*/
+
+
+
 
     public void initWalls(){
         /* Initialization of walls */
@@ -369,54 +410,142 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(floor_phy);
     }
 
+    private boolean dragging = false;
+    private Vector2f dragOffset = new Vector2f();
+
+    private final int joyCarré = 0;
+    private final int joyCroix = 1;
+    private final int joyCercle = 2;
+    private final int joyTriangle = 3;
+    private final int joyLeftStickX = 0;
+    private final int joyLeftStickY = 1;
+    private final int joyRightStickX = 2;
+    private final int joyButtonL2 = 3;
+    private final int joyButtonR2 = 4;
+    private final int joyRightStickY = 5;
 
     private void setUpKeys() {
-        inputManager.addMapping("Left", new MouseAxisTrigger(MouseInput.AXIS_X, false));
-        inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
-        inputManager.addMapping("Right", new MouseAxisTrigger(MouseInput.AXIS_X, true));
-        inputManager.addMapping("Up", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
-        inputManager.addMapping("Down", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
-        //inputManager.addListener(analogListener, "Left", "Right", "Up","Down");
-        lastCursorPosition.set(inputManager.getCursorPosition());
+        inputManager.addMapping("MouseMoved", new MouseAxisTrigger(MouseInput.AXIS_X, true), new MouseAxisTrigger(MouseInput.AXIS_X, false), new MouseAxisTrigger(MouseInput.AXIS_Y, true), new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+        inputManager.addMapping("MousePressed", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("MouseReleased", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarré));
+        inputManager.addMapping("Button_Triangle", new JoyButtonTrigger(0, joyTriangle));
+        inputManager.addMapping("Button_Cercle", new JoyButtonTrigger(0, joyCercle));
+        inputManager.addMapping("Button_Croix", new JoyButtonTrigger(0, joyCroix));
+        inputManager.addMapping("PS5LeftJoystickLeftBottom", new JoyAxisTrigger(0, joyLeftStickX, true));
+        inputManager.addMapping("PS5LeftJoystickRight", new JoyAxisTrigger(0, joyLeftStickY, false));
+        inputManager.addMapping("PS5RightJoystickRightBottom", new JoyAxisTrigger(0, joyRightStickX, false));
+        inputManager.addMapping("PS5ButtonL2", new JoyAxisTrigger(0, joyButtonL2, false));
+        inputManager.addMapping("PS5ButtonR2", new JoyAxisTrigger(0, joyButtonR2, false));
+        inputManager.addMapping("PS5RightJoystickLeft", new JoyAxisTrigger(0, joyRightStickY, false));
 
+        inputManager.addListener(analogListener, "MouseMoved");
+        inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
+        inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
+        inputManager.addListener(actionListener, "MousePressed", "MouseReleased");
+        inputManager.addJoystickConnectionListener(new JoystickConnectionListener() {
+            @Override
+            public void onConnected(Joystick joystick) {
+                System.out.println("Joystick connected: " + joystick.getName());
+            }
+
+            @Override
+            public void onDisconnected(Joystick joystick) {
+                System.out.println("Joystick Disconnected: " + joystick.getName());
+            }
+        });
+        inputManager.getJoysticks();
     }
-/*
-    private AnalogListener analogListener = new AnalogListener() {
-        @Override
-        public void onAnalog(String name, float keyPressed, float tpf) {
-            if (true) {
 
+    private final ActionListener actionListener = new ActionListener() {
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if (name.equals("MousePressed")) {
+                Vector3f mouse3D = cam.getWorldCoordinates(inputManager.getCursorPosition(), 0).clone();
+                Vector3f dir = cam.getWorldCoordinates(inputManager.getCursorPosition(), 1).subtractLocal(mouse3D).normalizeLocal();
+                Ray ray = new Ray(mouse3D, dir);
+                CollisionResults results = new CollisionResults();
+                player.collideWith(ray, results);
+                if (results.size() > 0) {
+                    dragging = true;
+                    System.out.println("Raquette position après le clic : " + player.getWorldTranslation());
+                    Vector3f collisionPoint = results.getClosestCollision().getContactPoint();
+                    Vector3f player2D = cam.getScreenCoordinates(player.getWorldTranslation());
+                    Vector2f mouse2D = inputManager.getCursorPosition();
+                    dragOffset.set(player2D.x - mouse2D.x, player2D.y - mouse2D.y);
+                }
+            } else if (name.equals("MouseReleased")) {
+                dragging = false;
+            } else if (name.equals("Button_Croix") && isPressed) {
+                System.out.println("Button Croix pressed");
+            }  else if (name.equals("Button_Triangle") && isPressed) {
+                System.out.println("Button Triangle pressed");
+            } else if (name.equals("Button_Carré") && isPressed) {
+                System.out.println("Button Carré pressed");
+            }else if (name.equals("Button_Cercle") && isPressed) {
+                System.out.println("Button Cercle pressed");
             }
         }
     };
-*/
+
+    private final AnalogListener analogListener = new AnalogListener() {
+        public void onAnalog(String name, float value, float tpf) {
+            if (name.equals("MouseMoved") && dragging) {
+                Vector2f mouse2D = inputManager.getCursorPosition();
+                Vector2f mouseDelta = mouse2D.subtract(lastCursorPosition);
+                lastCursorPosition.set(mouse2D);
+
+                Vector3f pos = player.getWorldTranslation().clone();
+                Vector3f targetPos = new Vector3f(pos.x - mouseDelta.y * sensitivity, pos.y, pos.z - mouseDelta.x * sensitivity);
+                pos.interpolateLocal(targetPos, tpf); // Interpolate position for smoother movement
+                player.getControl(RigidBodyControl.class).setPhysicsLocation(pos);
+            }else if (name.equals("PS5LeftJoystickLeftBottom")) {
+                System.out.printf("Joystick value: %f\n", value);
+            }else if(name.equals("PS5LeftJoystickRight")){
+                System.out.printf("Joystick value: %f\n", value);
+            }else if(name.equals("PS5RightJoystickRightBottom")){
+                System.out.printf("Joystick value: %f\n", value);
+            }else if(name.equals("PS5ButtonL2")){
+                System.out.printf("Joystick value: %f\n", value);
+            }else if(name.equals("PS5ButtonR2")){
+                System.out.printf("Joystick value: %f\n", value);
+            }else if(name.equals("PS5RightJoystickLeft")){
+                System.out.printf("Joystick value: %f\n", value);
+            }
+        }
+    };
 
 
-    public void simpleUpdate(float tpf) {
-    // Calculer le déplacement de la souris depuis la dernière frame
-        if (click) {
-            Vector2f currentCursorPosition = inputManager.getCursorPosition();
-            System.out.println("AHHHHHHHHHHHHHHHHHHHHHHHHHHH");
-            player.move(currentCursorPosition.getX(), currentCursorPosition.getY(), 0);
+
+    public void listerManettes() {
+        Joystick[] joysticks = inputManager.getJoysticks();
+
+        if (joysticks != null && joysticks.length > 0) {
+            System.out.println("Manettes détectées :");
+
+            for (int i = 0; i < joysticks.length; i++) {
+                Joystick joystick = joysticks[i];
+                System.out.println("Manette " + (i + 1) + ": " + joystick.getName());
+
+                // Liste des axes de la manette
+                for (JoystickAxis axis : joystick.getAxes()) {
+                    System.out.println("   Axe " + axis.getAxisId() + ": " + axis.getName());
+                }
+
+                // Liste des boutons de la manette
+                for (JoystickButton button : joystick.getButtons()) {
+                    System.out.println("   Bouton " + button.getButtonId() + ": " + button.getName());
+                }
+            }
+        } else {
+            System.out.println("Aucune manette détectée.");
         }
     }
 
+
+
+
+
     @Override
-    public void onAction(String binding, boolean value, float tpf) {
-        if (binding.equals("Left")) {
-            left = value;
-        }
-        if (binding.equals("Right")) {
-            right = value;
-        }
-        if (binding.equals("Click")) {
-            click = value;
-        }
-        if (binding.equals("Up")) {
-            up = value;
-        }
-        if (binding.equals("Down")) {
-            down = value;
-        }
+    public void onAction(String s, boolean b, float v) {
     }
 }
