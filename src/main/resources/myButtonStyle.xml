@@ -1,0 +1,21 @@
+<nifty>
+    <useStyles filename="nifty-default-styles.xml" />
+    <useControls filename="nifty-default-controls.xml" />
+
+    <styles>
+        <style id="myButtonStyle">
+            <attributes
+                    controlWidth="100%"
+                    controlHeight="50%"
+                    backgroundColor="#000f"
+                    color="#fff"
+                    font="aurulent-sans-16.fnt" />
+        </style>
+    </styles>
+
+    <screen id="start">
+        <layer id="layer" backgroundColor="#0000" childLayout="center">
+            <control id="myButton" name="button" label="Click Me" style="myButtonStyle" />
+        </layer>
+    </screen>
+</nifty>

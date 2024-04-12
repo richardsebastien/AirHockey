@@ -1,0 +1,17 @@
+<nifty>
+    <screen id="start" controller="my.game.StartScreenState">
+        <layer id="background" backgroundColor="#808080" childLayout="center" />
+        <layer id="foreground" backgroundColor="#0000" childLayout="vertical">
+            <panel id="panel_top" height="25%" width="75%" childLayout="center" />
+            <panel id="panel_mid" height="50%" width="75%" childLayout="center">
+                <control name="button" label="Start Game" id="StartButton" align="center" valign="center" visibleToMouse="true" font="">
+                    <interact onClick="startGame()"/>
+                </control>
+                <control name="button" label="Quit Game" id="QuitButton" align="center" valign="center" visibleToMouse="true" font="">
+                    <interact onClick="quitGame()"/>
+                </control>
+            </panel>
+            <panel id="panel_bottom" height="25%" width="75%" childLayout="center" />
+        </layer>
+    </screen>
+</nifty>

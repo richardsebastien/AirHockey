@@ -54,10 +54,6 @@ public static void main(String[] args) {
         stateManager.attach(bulletAppState);
         flyCam.setEnabled(false);
 
-
-
-
-
         initMaterials();
         initWalls();
         initFloor();
@@ -311,7 +307,7 @@ public static void main(String[] args) {
             }
         }
     }
-
+    @Override
     public void onAction(String a, boolean b, float tpf) {
 
     }
