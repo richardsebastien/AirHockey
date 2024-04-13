@@ -87,20 +87,12 @@ public class StartScreenState extends BaseAppState implements ScreenController {
 
     public void startGame1vsIA() {
         nifty.gotoScreen("emptyScreen");
+        if (app != null) {
+        } else {
+            System.out.println("Application is null, cannot start the game.");
+        }
 
-        AppSettings actualSettings = getApplication().getContext().getSettings();
-        int width = actualSettings.getWidth();
-        int height = actualSettings.getHeight();
 
-
-        AppSettings settings = new AppSettings(true);
-        settings.setUseJoysticks(true);
-        settings.setFullscreen(true);
-        settings.setResolution(width, height);
-        Main appjeu = new Main();
-        appjeu.setSettings(settings);
-        appjeu.setShowSettings(false);
-        appjeu.start();
 
 
     }

@@ -2,7 +2,6 @@ package fr.utln.airhockey;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
-import com.jme3.audio.AudioRenderer;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
@@ -11,10 +10,8 @@ import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.niftygui.NiftyJmeDisplay;
-import com.jme3.renderer.Camera;
-import com.jme3.renderer.ViewPort;
 import com.jme3.math.*;
+import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
@@ -41,7 +38,6 @@ public static void main(String[] args) {
 
     private boolean click = false;
     private Vector2f lastCursorPosition = new Vector2f();
-    private float sensitivity = 0.5f; // Ajustez cette valeur selon vos besoins
 
     final private Vector3f camDir = new Vector3f();
     final private Vector3f camLeft = new Vector3f();
@@ -62,8 +58,6 @@ public static void main(String[] args) {
     public void simpleInitApp() {
 
     // Nifty GUI
-        StartScreenState startScreenState = new StartScreenState();
-        startScreenState.initialize(this);
         NiftyJmeDisplay niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
                 assetManager,
                 inputManager,
@@ -80,6 +74,8 @@ public static void main(String[] args) {
         nifty.gotoScreen("start");
 
         guiViewPort.addProcessor(niftyDisplay);
+
+
 
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
