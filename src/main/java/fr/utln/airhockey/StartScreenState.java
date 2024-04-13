@@ -13,33 +13,21 @@ import de.lessvoid.nifty.controls.button.builder.ButtonBuilder;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nonnull;
 
 public class StartScreenState extends BaseAppState implements ScreenController {
+    @Setter
     private Nifty nifty;
-    private Application app;
+    @Setter
+    private Main app;
+
 
     @Override
-    protected void initialize(Application app) {
-        System.out.println("Initialize calles. App is: " + app);
-        this.app = app;
-        NiftyJmeDisplay niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
-                app.getAssetManager(),
-                app.getInputManager(),
-                app.getAudioRenderer(),
-                app.getGuiViewPort());
+    protected void initialize(Application application) {
 
-        nifty = niftyDisplay.getNifty();
-        app.getInputManager().setCursorVisible(true);
-
-        nifty.fromXml("Interface/Screens.xml", "start", this);
-
-
-
-        nifty.gotoScreen("start");
-
-        app.getGuiViewPort().addProcessor(niftyDisplay);
     }
 
     @Override
@@ -49,7 +37,20 @@ public class StartScreenState extends BaseAppState implements ScreenController {
 
     @Override
     protected void onEnable() {
+        NiftyJmeDisplay niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(
+                app.getAssetManager(),
+                app.getInputManager(),
+                app.getAudioRenderer(),
+                app.getGuiViewPort());
 
+        this.nifty = niftyDisplay.getNifty();
+        this.app.setNifty(this.nifty); // Assuming you have a setter for Nifty in your Main class
+
+        // Load your XML and go to your screen
+        nifty.fromXml("Interface/Screens.xml", "start", this);
+        nifty.gotoScreen("start");
+
+        app.getGuiViewPort().addProcessor(niftyDisplay);
     }
 
     @Override
@@ -78,6 +79,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
 
 
     public void quitGame() {
+        System.out.println("Quitting game");
         if (app != null) {
             app.stop();
         } else {
@@ -86,14 +88,9 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     }
 
     public void startGame1vsIA() {
+        app.setIsStarted(true);
+        app.setIsPaused(false);
         nifty.gotoScreen("emptyScreen");
-        if (app != null) {
-        } else {
-            System.out.println("Application is null, cannot start the game.");
-        }
-
-
-
 
     }
 
@@ -103,5 +100,15 @@ public class StartScreenState extends BaseAppState implements ScreenController {
 
     public void startGameNetwork() {
         // Add code to start game
+    }
+
+    public void showSettings() {
+        System.out.println("Showing settings");
+        nifty.gotoScreen("settings");
+    }
+
+    public void showPause() {
+        System.out.println("Showing pause");
+        nifty.gotoScreen("pause");
     }
 }
