@@ -1,11 +1,19 @@
 package fr.utln.airhockey;
 
+import com.atr.jme.font.TrueTypeBMP;
+import com.atr.jme.font.TrueTypeFont;
+import com.atr.jme.font.TrueTypeMesh;
+import com.atr.jme.font.asset.TrueTypeKeyBMP;
+import com.atr.jme.font.asset.TrueTypeLoader;
+import com.atr.jme.font.shape.TrueTypeNode;
+import com.atr.jme.font.util.Style;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResults;
+import com.jme3.font.BitmapText;
 import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
@@ -107,9 +115,19 @@ public static void main(String[] args) {
         cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
         cam1.update();
         cam2.update();*/
+        /*
+        // Create a new font
+        assetManager.registerLoader(TrueTypeLoader.class, "ttf");
+        TrueTypeKeyBMP ttk = new TrueTypeKeyBMP("Policies/LasEnter.ttf",
+                Style.Plain, 72);
+        TrueTypeFont ttf = (TrueTypeBMP)assetManager.loadAsset(ttk);
+        ttf.setScale(16/21f);
 
-
-
+        // Create a new text geometry
+        TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
+        trueNode.setLocalTranslation((settings.getWidth()/2)-150, settings.getHeight()-50, 0);
+        guiNode.attachChild(trueNode);
+        */
 
         listerManettes();
 
