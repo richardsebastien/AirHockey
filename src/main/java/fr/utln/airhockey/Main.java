@@ -1,25 +1,16 @@
 package fr.utln.airhockey;
 
-import com.atr.jme.font.TrueTypeBMP;
-import com.atr.jme.font.TrueTypeFont;
-import com.atr.jme.font.TrueTypeMesh;
-import com.atr.jme.font.asset.TrueTypeKeyBMP;
-import com.atr.jme.font.asset.TrueTypeLoader;
-import com.atr.jme.font.shape.TrueTypeNode;
-import com.atr.jme.font.util.Style;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResults;
-import com.jme3.font.BitmapText;
 import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.*;
-import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
@@ -33,8 +24,7 @@ import de.lessvoid.nifty.elements.render.TextRenderer;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.swing.text.JTextComponent;
-
+import java.util.Objects;
 
 public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
@@ -61,8 +51,6 @@ public static void main(String[] args) {
     private boolean click = false;
     private Vector2f lastCursorPosition = new Vector2f();
 
-    final private Vector3f camDir = new Vector3f();
-    final private Vector3f camLeft = new Vector3f();
     /** Prepare Materials */
     private Material wall_mat;
     private Material red_cage_mat;
@@ -456,31 +444,29 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(floor_phy);
     }
 
-    private boolean dragging = false;
     private Vector2f dragOffset = new Vector2f();
-
-    private final int joyCarré = 0;
-    private final int joyCroix = 1;
-    private final int joyCercle = 2;
-    private final int joyTriangle = 3;
-    private final int joyLeftStickX = 0;
-    private final int joyLeftStickY = 1;
-    private final int joyRightStickX = 2;
-    private final int joyButtonL2 = 3;
-    private final int joyButtonR2 = 4;
-    private final int joyRightStickY = 5;
 
     private void setUpKeys() {
         inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
-        inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarré));
+        int joyCarre = 0;
+        inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarre));
+        int joyTriangle = 3;
         inputManager.addMapping("Button_Triangle", new JoyButtonTrigger(0, joyTriangle));
+        int joyCercle = 2;
         inputManager.addMapping("Button_Cercle", new JoyButtonTrigger(0, joyCercle));
+        int joyCroix = 1;
         inputManager.addMapping("Button_Croix", new JoyButtonTrigger(0, joyCroix));
+        int joyLeftStickX = 0;
         inputManager.addMapping("PS5LeftJoystickLeftBottom", new JoyAxisTrigger(0, joyLeftStickX, true));
+        int joyLeftStickY = 1;
         inputManager.addMapping("PS5LeftJoystickRight", new JoyAxisTrigger(0, joyLeftStickY, false));
+        int joyRightStickX = 2;
         inputManager.addMapping("PS5RightJoystickRightBottom", new JoyAxisTrigger(0, joyRightStickX, false));
+        int joyButtonL2 = 3;
         inputManager.addMapping("PS5ButtonL2", new JoyAxisTrigger(0, joyButtonL2, false));
+        int joyButtonR2 = 4;
         inputManager.addMapping("PS5ButtonR2", new JoyAxisTrigger(0, joyButtonR2, false));
+        int joyRightStickY = 5;
         inputManager.addMapping("PS5RightJoystickLeft", new JoyAxisTrigger(0, joyRightStickY, false));
         inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
         inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
@@ -511,7 +497,7 @@ public static void main(String[] args) {
         public void onAction(String name, boolean isPressed, float tpf) {
 
             if (name.equals("MouseReleased")) {
-                dragging = false;
+                boolean dragging = false;
             }
             if (name.equals("Button_Croix") && isPressed) {
                 System.out.println("Button Croix pressed");
@@ -631,14 +617,11 @@ public static void main(String[] args) {
             palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
 
             // Mettre à jour le score et le temps
-            Element scoreText = nifty.getScreen("hud").findElementById("scoreText");
-            Element timeText = nifty.getScreen("hud").findElementById("timeText");
+            Element scoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("scoreText");
+            Element timeText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("timeText");
 
-            // Remplacez ces valeurs par vos vraies valeurs de score et de temps
-
-
-            scoreText.getRenderer(TextRenderer.class).setText("Score: " + score);
-            timeText.getRenderer(TextRenderer.class).setText("Time: " + time);
+            Objects.requireNonNull(Objects.requireNonNull(scoreText).getRenderer(TextRenderer.class)).setText("Score: " + score);
+            Objects.requireNonNull(Objects.requireNonNull(timeText).getRenderer(TextRenderer.class)).setText("Time: " + time);
 
 
             if (click) {
@@ -683,10 +666,12 @@ public static void main(String[] args) {
         }
     }
 
+    @SuppressWarnings("unused")
     public void pauseGame() {
         isPaused = true;
     }
 
+    @SuppressWarnings("unused")
     public void resumeGame() {
         isPaused = false;
     }
