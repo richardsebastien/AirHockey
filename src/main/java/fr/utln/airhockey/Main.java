@@ -28,6 +28,8 @@ import com.jme3.scene.shape.Sphere;
 import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.render.TextRenderer;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -69,6 +71,10 @@ public static void main(String[] args) {
     private Material floor_mat;
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
+
+    private int score= 0;
+    private int time = 0;
+    private float tpfTime = 0.0f;
 
     static{
         floor = new Box(30f, 0.1f, 15f);
@@ -525,7 +531,7 @@ public static void main(String[] args) {
                         isPaused = true;
                         nifty.gotoScreen("pause");
                     }else{
-                        nifty.gotoScreen("emptyScreen");
+                        nifty.gotoScreen("hud");
                         isPaused = false;
                     }
                 }else{
@@ -603,6 +609,12 @@ public static void main(String[] args) {
 
     public void simpleUpdate(float tpf) {
         if(!isPaused) {
+            tpfTime += tpf;
+            if (tpfTime >= 1.0f) {
+                // Une seconde s'est écoulée, incrémenter le compteur
+                time++;
+                tpfTime = 0.0f;
+            }
 
             Vector3f bloqueRaquette;
             Vector3f bloquePalet;
@@ -617,6 +629,16 @@ public static void main(String[] args) {
             palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
             bloquePalet = palet.getLinearVelocity();
             palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
+
+            // Mettre à jour le score et le temps
+            Element scoreText = nifty.getScreen("hud").findElementById("scoreText");
+            Element timeText = nifty.getScreen("hud").findElementById("timeText");
+
+            // Remplacez ces valeurs par vos vraies valeurs de score et de temps
+
+
+            scoreText.getRenderer(TextRenderer.class).setText("Score: " + score);
+            timeText.getRenderer(TextRenderer.class).setText("Time: " + time);
 
 
             if (click) {

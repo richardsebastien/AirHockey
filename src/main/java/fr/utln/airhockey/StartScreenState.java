@@ -90,7 +90,7 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     public void startGame1vsIA() {
         app.setIsStarted(true);
         app.setIsPaused(false);
-        nifty.gotoScreen("emptyScreen");
+        nifty.gotoScreen("hud");
 
     }
 
