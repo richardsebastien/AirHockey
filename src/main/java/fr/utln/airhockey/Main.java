@@ -3,6 +3,7 @@ package fr.utln.airhockey;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
+import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResults;
@@ -51,6 +52,9 @@ public static void main(String[] args) {
     private boolean click = false;
     private Vector2f lastCursorPosition = new Vector2f();
 
+    private Geometry red_cage_invisible_geo;
+    private Geometry blue_cage_invisible_geo;
+
     /** Prepare Materials */
     private Material wall_mat;
     private Material red_cage_mat;
@@ -60,7 +64,8 @@ public static void main(String[] args) {
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
 
-    private int score= 0;
+    private int redScore= 0;
+    private int blueScore = 0;
     private int time = 0;
     private float tpfTime = 0.0f;
 
@@ -352,6 +357,7 @@ public static void main(String[] args) {
     }
 
     public void initCages(){
+
         /* Initialization of the red cage */
         Box red_cage_back = new Box(0.1f, 1.2f, 5f);
         Box red_cage_top = new Box(2f, 0.1f, 5f);
@@ -370,12 +376,12 @@ public static void main(String[] args) {
         Geometry red_cage_back_geo = new Geometry("Red Cage Back", red_cage_back);
         Geometry red_cage_top_geo = new Geometry("Red Cage Top", red_cage_top);
 
-        Geometry red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
+        red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
 
         Geometry blue_cage_back_geo = new Geometry("Blue Cage Back", blue_cage_back);
         Geometry blue_cage_top_geo = new Geometry("Blue Cage Top", blue_cage_top);
 
-        Geometry blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
+        blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
 
         /* Move the geometries to the correct position */
         red_cage_back_geo.move(-30.9f, 0, 0);
@@ -444,10 +450,8 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(floor_phy);
     }
 
-    private Vector2f dragOffset = new Vector2f();
 
     private void setUpKeys() {
-        inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
         int joyCarre = 0;
         inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarre));
         int joyTriangle = 3;
@@ -473,7 +477,7 @@ public static void main(String[] args) {
 
         inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
-        inputManager.addListener(actionListener, "Click","Escape");
+        inputManager.addListener(actionListener, "Escape");
 
         inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
         // Définir l'écouteur d'action pour le clic gauche
@@ -495,10 +499,6 @@ public static void main(String[] args) {
 
     private final ActionListener actionListener = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
-
-            if (name.equals("MouseReleased")) {
-                boolean dragging = false;
-            }
             if (name.equals("Button_Croix") && isPressed) {
                 System.out.println("Button Croix pressed");
             }
@@ -595,12 +595,21 @@ public static void main(String[] args) {
 
     public void simpleUpdate(float tpf) {
         if(!isPaused) {
+            /*
             tpfTime += tpf;
             if (tpfTime >= 1.0f) {
                 // Une seconde s'est écoulée, incrémenter le compteur
                 time++;
                 tpfTime = 0.0f;
             }
+            */
+
+            if(blueScore == 5 || redScore == 5){
+                isPaused = true;
+                isStarted = false;
+                nifty.gotoScreen("end");
+            }
+
 
             Vector3f bloqueRaquette;
             Vector3f bloquePalet;
@@ -617,11 +626,13 @@ public static void main(String[] args) {
             palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
 
             // Mettre à jour le score et le temps
-            Element scoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("scoreText");
-            Element timeText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("timeText");
+            Element blueScoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("blueScoreText");
+            Element redScoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("redScoreText");
+            //Element timeText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("timeText");
 
-            Objects.requireNonNull(Objects.requireNonNull(scoreText).getRenderer(TextRenderer.class)).setText("Score: " + score);
-            Objects.requireNonNull(Objects.requireNonNull(timeText).getRenderer(TextRenderer.class)).setText("Time: " + time);
+            Objects.requireNonNull(Objects.requireNonNull(blueScoreText).getRenderer(TextRenderer.class)).setText("Blue score: " + blueScore);
+            Objects.requireNonNull(Objects.requireNonNull(redScoreText).getRenderer(TextRenderer.class)).setText("Red score: " + redScore);
+            //Objects.requireNonNull(Objects.requireNonNull(timeText).getRenderer(TextRenderer.class)).setText("Time: " + time);
 
 
             if (click) {
@@ -652,7 +663,7 @@ public static void main(String[] args) {
                             direction = direction.normalize();
                             float speedMultiplier = Math.min(distance / 6, 1.0f);
                             // Appliquer le déplacement au joueur
-                            player.setLinearVelocity(direction.mult(speedMultiplier * 75)); // Multiplier par une vitesse de déplacement
+                            player.setLinearVelocity(direction.mult(speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
                         } else {
                             // Arreter le déplacement du joueur
                             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));

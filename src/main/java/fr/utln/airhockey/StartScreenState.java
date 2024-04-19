@@ -111,4 +111,9 @@ public class StartScreenState extends BaseAppState implements ScreenController {
         System.out.println("Showing pause");
         nifty.gotoScreen("pause");
     }
+
+    public void restartGame() {
+        System.out.println("Restarting game");
+        nifty.gotoScreen("hud");
+    }
 }
