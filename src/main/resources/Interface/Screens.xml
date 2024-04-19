@@ -40,7 +40,7 @@
         </layer>
         <layer id="foreground" childLayout="vertical">
             <panel id="panel_top" height="25%" width="75%" align="center" childLayout="center">
-                <text text="My Cool Game" font="Policies/LasEnter.ttf" width="100%"
+                <text text="My Cool Game" font="Policies/LasEnter-32.fnt" width="100%"
                       height="100%" />
             </panel>
             <panel id="panel_mid" height="50%" width="75%" align="center" childLayout="vertical">

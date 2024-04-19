@@ -3,7 +3,6 @@ package fr.utln.airhockey;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
-import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResults;
