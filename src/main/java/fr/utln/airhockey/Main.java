@@ -3,13 +3,13 @@ package fr.utln.airhockey;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
+import com.jme3.bullet.control.GhostControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResults;
 import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
-import com.jme3.material.RenderState;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -49,24 +49,27 @@ public static void main(String[] args) {
     private RigidBodyControl palet;
 
     private boolean click = false;
-    private Vector2f lastCursorPosition = new Vector2f();
+    private final Vector2f lastCursorPosition = new Vector2f();
 
-    private Geometry red_cage_invisible_geo;
-    private Geometry blue_cage_invisible_geo;
+    /** Prepare the cages */
+    private GhostControl red_cage;
+    private GhostControl blue_cage;
 
     /** Prepare Materials */
     private Material wall_mat;
     private Material red_cage_mat;
     private Material blue_cage_mat;
-    private Material invisible_cage_mat;
     private Material floor_mat;
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
 
+    /** Prepare all variables for scoring and timer */
     private int redScore= 0;
     private int blueScore = 0;
     private int time = 0;
+    private float timer = 0.0f;
     private float tpfTime = 0.0f;
+    private boolean isGoal = true;
 
     static{
         floor = new Box(30f, 0.1f, 15f);
@@ -79,15 +82,13 @@ public static void main(String[] args) {
         startScreenState.setApp(this);
         stateManager.attach(startScreenState);
 
-
-
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         flyCam.setEnabled(false);
         flyCam.setMoveSpeed(45);
 
-        bulletAppState.setDebugEnabled(true);
+        bulletAppState.setDebugEnabled(true); // For prod only
         /*
 
         // Create two cam to render the scene
@@ -127,35 +128,21 @@ public static void main(String[] args) {
         guiNode.attachChild(trueNode);
         */
 
-        listerManettes();
-
+        // Init all the game elements
         initMaterials();
         initWalls();
         initCages();
         initFloor();
         palet = initPalet();
         player = initRaquette();
-
-        //RigidBodyControl[] pomme;
-        //pomme = initWalls();
-        //MyCollisionListener collisionListener = new MyCollisionListener(player,pomme[0],pomme[1],pomme[2],pomme[3]);
-        //bulletAppState.getPhysicsSpace().addCollisionListener(collisionListener);
-
+        // Init the inputs
+        listerManettes();
         setUpKeys();
-
 
         /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
-        //player = new CharacterControl(capsuleShape, 0.05f);
-        //player.setJumpSpeed(20);
-        //player.setFallSpeed(30);
-        //player.setGravity(0);
-        //player.setPhysicsLocation(new Vector3f(0, 75, 0));
-
-
-        //bulletAppState.getPhysicsSpace().add(player);
 
         lastCursorPosition.set(inputManager.getCursorPosition());
 
@@ -186,10 +173,6 @@ public static void main(String[] args) {
         Texture tex3 = assetManager.loadTexture(key3);
         tex3.setWrap(Texture.WrapMode.EdgeClamp);
         floor_mat.setTexture("ColorMap", tex3);
-
-        invisible_cage_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        invisible_cage_mat.setColor("Color", new ColorRGBA(1, 1, 1, 0));
-        invisible_cage_mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
     }
 
     public RigidBodyControl initPalet(){
@@ -206,10 +189,6 @@ public static void main(String[] args) {
         geom.rotate(FastMath.HALF_PI, 0, 0);
         mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
         geom.setMaterial(mat);                   // set the cube's material
-
-
-
-
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
         /* Add physical brick to physics space. */
@@ -261,7 +240,7 @@ public static void main(String[] args) {
         compositeNode.move(4f, 2f, 4f);
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
-        /** Add physical brick to physics space. */
+        /* Add physical brick to physics space. */
         compositeNode.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
         box_phy.setRestitution(0.0f);
@@ -272,9 +251,6 @@ public static void main(String[] args) {
         return box_phy;
 
     }
-
-
-
 
     public RigidBodyControl[] initWalls(){
         RigidBodyControl[] ans = new RigidBodyControl[6];
@@ -357,63 +333,63 @@ public static void main(String[] args) {
 
     public void initCages(){
 
-        /* Initialization of the red cage */
+        /* Red cage */
+        red_cage = new GhostControl(new BoxCollisionShape(new Vector3f(2f, 1.2f, 4.1f)));
+        // Create a node for the red cage to manipulate it easily
+        Node red_cage_node = new Node("Red Cage");
+        red_cage_node.addControl(red_cage);
+        // Place it correctly
+        red_cage_node.setLocalTranslation(-29, 0, 0);
+        rootNode.attachChild(red_cage_node);
+        // Add the cage to the physics space
+        bulletAppState.getPhysicsSpace().add(red_cage);
+
+        /* Blue cage */
+        blue_cage = new GhostControl(new BoxCollisionShape(new Vector3f(2f, 1.2f, 4.1f)));
+        // Create a node for the blue cage to manipulate it easily
+        Node blue_cage_node = new Node("Blue Cage");
+        blue_cage_node.addControl(blue_cage);
+        // Place it correctly
+        blue_cage_node.setLocalTranslation(29, 0, 0);
+        rootNode.attachChild(blue_cage_node);
+        // Add the cage to the physics space
+        bulletAppState.getPhysicsSpace().add(blue_cage);
+
+        /* Initialization of the red cage walls */
         Box red_cage_back = new Box(0.1f, 1.2f, 5f);
         Box red_cage_top = new Box(2f, 0.1f, 5f);
 
-        /* Invisible cage to check the collision with palet (red side) */
-        Box red_cage_invisible = new Box(2f, 1.2f, 5f);
-
-        /* Initialization of the blue cage */
+        /* Initialization of the blue cage walls */
         Box blue_cage_back = new Box(0.1f, 1.2f, 5f);
         Box blue_cage_top = new Box(2f, 0.1f, 5f);
-
-        /* Invisible cage to check the collision with palet (blue side) */
-        Box blue_cage_invisible = new Box(2f, 1.2f, 5f);
 
         /* Geometries (red then blue) */
         Geometry red_cage_back_geo = new Geometry("Red Cage Back", red_cage_back);
         Geometry red_cage_top_geo = new Geometry("Red Cage Top", red_cage_top);
 
-        red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
-
         Geometry blue_cage_back_geo = new Geometry("Blue Cage Back", blue_cage_back);
         Geometry blue_cage_top_geo = new Geometry("Blue Cage Top", blue_cage_top);
-
-        blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
 
         /* Move the geometries to the correct position */
         red_cage_back_geo.move(-30.9f, 0, 0);
         red_cage_top_geo.move(-29, 1.1f, 0);
 
-        red_cage_invisible_geo.move(-29, 0, 0);
-
         blue_cage_back_geo.move(30.9f, 0, 0);
         blue_cage_top_geo.move(29, 1.1f, 0);
-
-        blue_cage_invisible_geo.move(29, 0, 0);
 
         /* Set the materials */
         red_cage_back_geo.setMaterial(wall_mat);
         red_cage_top_geo.setMaterial(red_cage_mat);
 
-        red_cage_invisible_geo.setMaterial(invisible_cage_mat);
-
         blue_cage_back_geo.setMaterial(wall_mat);
         blue_cage_top_geo.setMaterial(blue_cage_mat);
-
-        blue_cage_invisible_geo.setMaterial(invisible_cage_mat);
 
         /* Attach to root */
         rootNode.attachChild(red_cage_back_geo);
         rootNode.attachChild(red_cage_top_geo);
 
-        rootNode.attachChild(red_cage_invisible_geo);
-
         rootNode.attachChild(blue_cage_back_geo);
         rootNode.attachChild(blue_cage_top_geo);
-
-        rootNode.attachChild(blue_cage_invisible_geo);
 
         /* Make the cages physical with mass 0.0f */
         RigidBodyControl red_cage_top_phy = new RigidBodyControl(0.0f);
@@ -524,13 +500,8 @@ public static void main(String[] args) {
                 }
             }
 
-            if (name.equals("LeftClick") && isPressed) {
-                click = true;
-            }
             //Fin du clic gauche
-            else {
-                click = false;
-            }
+            click = name.equals("LeftClick") && isPressed;
         }
     };
 
@@ -557,8 +528,6 @@ public static void main(String[] args) {
         }
     };
 
-
-
     public void listerManettes() {
         Joystick[] joysticks = inputManager.getJoysticks();
 
@@ -584,10 +553,6 @@ public static void main(String[] args) {
         }
     }
 
-
-
-
-
     @Override
     public void onAction(String s, boolean b, float v) {
     }
@@ -607,6 +572,36 @@ public static void main(String[] args) {
                 isPaused = true;
                 isStarted = false;
                 nifty.gotoScreen("end");
+            }
+            // If the palet is in the red cage
+            if (red_cage.getOverlappingObjects().contains(palet)) {
+                if(isGoal){
+                    // Reset the palet and the player
+                    palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+                    palet.setPhysicsLocation(new Vector3f(0, 2, 0));
+                    player.setPhysicsLocation(new Vector3f(15, 5, 0));
+                    player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+                    // Increment the blue score
+                    blueScore++;
+                    // Set the goal to false to avoid incrementing the score twice
+                    isGoal = false;
+                }
+
+
+            }
+            // If the palet is in the blue cage
+            if (blue_cage.getOverlappingObjects().contains(palet)) {
+                if(isGoal){
+                    // Reset the palet and the player
+                    palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+                    palet.setPhysicsLocation(new Vector3f(0, 2, 0));
+                    player.setPhysicsLocation(new Vector3f(15, 5, 0));
+                    player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+                    // Increment the red score
+                    redScore++;
+                    // Set the goal to false to avoid incrementing the score twice
+                    isGoal = false;
+                }
             }
 
 
@@ -648,13 +643,12 @@ public static void main(String[] args) {
                 rootNode.collideWith(ray, results);
                 for (int i = 0; i < results.size(); i++) {
                     //On ne garde que la collision avec le sol
-                    if (results.getCollision(i).getGeometry().getName() == "Floor") {
-
+                    if (Objects.equals(results.getCollision(i).getGeometry().getName(), "Floor")) {
 
                         Vector3f posSouris = results.getCollision(i).getContactPoint();
                         Vector3f posPalet = player.getPhysicsLocation();
 
-                        // Pour eviter que la raquette est Parkinson
+                        // Pour eviter que la raquette ai Parkinson
                         if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
                             Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
                             float distance = direction.length();
@@ -663,6 +657,14 @@ public static void main(String[] args) {
                             float speedMultiplier = Math.min(distance / 6, 1.0f);
                             // Appliquer le déplacement au joueur
                             player.setLinearVelocity(direction.mult(speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
+                            // Avoid the goals to be scored twice for 1 goal
+                            if (timer > 1){
+                                timer = 0;
+                                isGoal = true;
+                            }
+                            else {
+                                timer += tpf;
+                            }
                         } else {
                             // Arreter le déplacement du joueur
                             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
