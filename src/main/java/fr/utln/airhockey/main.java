@@ -42,6 +42,7 @@ public static void main(String[] args) {
 
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
+    private Vector3f lastvelocity = new Vector3f(0,0,0);
 
     static{
         floor = new Box(30f, 0.1f, 15f);
@@ -66,10 +67,7 @@ public static void main(String[] args) {
         player = initRaquette();
         AI = initEnnemie();
 
-        //RigidBodyControl[] pomme;
-        //pomme = initWalls();
-        //MyCollisionListener collisionListener = new MyCollisionListener(player,pomme[0],pomme[1],pomme[2],pomme[3]);
-        //bulletAppState.getPhysicsSpace().addCollisionListener(collisionListener);
+
 
         setUpKeys();
         inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
@@ -224,7 +222,7 @@ public static void main(String[] args) {
         compositeNode.attachChild(sphereGeom);
 
         //je bouge les 2 objets liées en même temps en utilisante le composite node
-        compositeNode.move(-6f, 2f, 2f);
+        compositeNode.move(-6f, 3f, 2f);
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
 
@@ -245,10 +243,10 @@ public static void main(String[] args) {
 
     public RigidBodyControl[] initWalls(){
         RigidBodyControl[] ans = new RigidBodyControl[4];
-        Box wall = new Box(30f, 1.5f, 5f);
-        Box wall2 = new Box(5f, 1.5f, 15f);
-        Box wall3 = new Box(5f, 1.5f, 15f);
-        Box wall4 = new Box(30f, 1.5f, 5f);
+        Box wall = new Box(30f, 1.5f, 1f);
+        Box wall2 = new Box(1f, 1.5f, 15f);
+        Box wall3 = new Box(1f, 1.5f, 15f);
+        Box wall4 = new Box(30f, 1.5f, 1f);
         Geometry wall_geo = new Geometry("Wall", wall);
         Geometry wall_geo2 = new Geometry("Wall2", wall2);
         Geometry wall_geo3 = new Geometry("Wall3", wall3);
@@ -310,42 +308,72 @@ public static void main(String[] args) {
 
 
     private void setUpKeys() {
-        inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
     }
 
 
 
     public void EnnemiComportement() {
-        if (palet.getPhysicsLocation().x > -5)      {
+        AI.setAngularVelocity(new Vector3f(0,0,0));
+        if(palet.getLinearVelocity().length() < 40) {
+            if (palet.getPhysicsLocation().x > -5) {
+                Vector3f base = new Vector3f(-19f, 0f, 0f);
+                if ((Math.abs(base.x - AI.getPhysicsLocation().x) > 1) || (Math.abs(base.z - AI.getPhysicsLocation().z) > 1)) {
+
+                    Vector3f direction = base.subtract(AI.getPhysicsLocation());
+                    float distance = direction.length();
+                    // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                    direction = direction.normalize();
+                    // Appliquer le déplacement au joueur
+                    AI.setLinearVelocity(direction.mult(30)); // Multiplier par une vitesse de déplacement
+                } else {
+                    AI.setLinearVelocity(new Vector3f(0, 0, 0));
+                }
 
 
-            Vector3f base = new Vector3f(-22f,0f,0f);
-            Vector3f direction = base.subtract(AI.getPhysicsLocation());
-            float distance = direction.length();
-            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
-            direction = direction.normalize();
-            // Appliquer le déplacement au joueur
-            AI.setLinearVelocity(direction.mult(75)); // Multiplier par une vitesse de déplacement
+            } else if ((palet.getPhysicsLocation().x > AI.getPhysicsLocation().x) && (palet.getPhysicsLocation().x > -17)) {
+                Vector3f direction = palet.getPhysicsLocation().subtract(AI.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                float speedMultiplier = Math.min(distance / 6, 1.0f);
+                // Appliquer le déplacement au joueur
+                AI.setLinearVelocity(direction.mult(speedMultiplier * 30)); // Multiplier par une vitesse de déplacement
+                if (AI.getPhysicsLocation().x > -5) {
+                    Vector3f temp = AI.getLinearVelocity();
+                    temp.x = 0;
+                    AI.setLinearVelocity(temp);
+                }
+            } else {
+                Vector3f base = new Vector3f(-25f, 0f, 0f);
+                Vector3f paletpos = palet.getPhysicsLocation();
+                float dist = base.distance(paletpos);
+                float rapport = 6.0f / dist;
 
+                Vector3f defense = new Vector3f(base.x + rapport * (paletpos.x - base.x), 0f, base.z + rapport * (paletpos.z - base.z));
+                if ((Math.abs(defense.x - AI.getPhysicsLocation().x) > 1) || (Math.abs(defense.z - AI.getPhysicsLocation().z) > 1)) {
+                    Vector3f direction = defense.subtract(AI.getPhysicsLocation());
+                    float distance = direction.length();
+                    // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                    direction = direction.normalize();
+                    // Appliquer le déplacement au joueur
+                    AI.setLinearVelocity(direction.mult(30)); // Multiplier par une vitesse de déplacement
+                } else {
+                    AI.setLinearVelocity(new Vector3f(0, 0, 0));
+                }
 
+            }
         }
         else{
-        Vector3f direction = palet.getPhysicsLocation().subtract(AI.getPhysicsLocation());
-        float distance = direction.length();
-        // Normaliser le vecteur de déplacement pour avoir une direction unitaire
-        direction = direction.normalize();
-        float speedMultiplier = Math.min(distance / 6, 1.0f);
-        // Appliquer le déplacement au joueur
-        AI.setLinearVelocity(direction.mult(speedMultiplier * 75)); // Multiplier par une vitesse de déplacement
-        if (AI.getPhysicsLocation().x > -5) {
-            Vector3f temp = AI.getLinearVelocity();
-            temp.x = 0;
-            AI.setLinearVelocity(temp);
-        }
-        }
+            if (lastvelocity != palet.getLinearVelocity()){
+                lastvelocity = palet.getLinearVelocity();
 
+            }
+
+
+
+
+        }
     }
-
 
     public void simpleUpdate(float tpf) {
 
@@ -368,8 +396,6 @@ public static void main(String[] args) {
 
         if (click == true) {
 
-
-
             // Reset results list.
             CollisionResults results = new CollisionResults();
             // Convert screen click to 3d position
@@ -391,13 +417,14 @@ public static void main(String[] args) {
 
                     // Pour eviter que la raquette est Parkinson
                     if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
-                        Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
+                        Vector3f pos = new Vector3f(results.getCollision(i).getContactPoint().x,0.2f,results.getCollision(i).getContactPoint().z);
+                        Vector3f direction = pos.subtract(player.getPhysicsLocation());
                         float distance = direction.length();
                         // Normaliser le vecteur de déplacement pour avoir une direction unitaire
                         direction = direction.normalize();
                         float speedMultiplier = Math.min(distance / 6, 1.0f);
                         // Appliquer le déplacement au joueur
-                        player.setLinearVelocity(direction.mult(speedMultiplier * 75)); // Multiplier par une vitesse de déplacement
+                        player.setLinearVelocity(direction.mult(speedMultiplier * 90)); // Multiplier par une vitesse de déplacement
                     }
                     else {
                         // Arreter le déplacement du joueur
@@ -405,6 +432,10 @@ public static void main(String[] args) {
                     }
                 }
             }
+        }
+        else {
+            // Arreter le déplacement du joueur
+            player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
         }
     }
 
