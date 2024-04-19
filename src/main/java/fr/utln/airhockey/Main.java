@@ -10,8 +10,6 @@ import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.renderer.Camera;
-import com.jme3.renderer.ViewPort;
 import com.jme3.math.*;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -20,7 +18,13 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
+import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.render.TextRenderer;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.util.Objects;
 
 public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
@@ -30,6 +34,14 @@ public static void main(String[] args) {
         app.setSettings(settings);
         app.start();
     }
+    @Setter
+    private Nifty nifty;
+    @Getter
+    @Setter
+    private Boolean isPaused = true;
+    @Getter
+    @Setter
+    private Boolean isStarted = false;
 
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
@@ -38,10 +50,10 @@ public static void main(String[] args) {
 
     private boolean click = false;
     private Vector2f lastCursorPosition = new Vector2f();
-    private float sensitivity = 0.5f; // Ajustez cette valeur selon vos besoins
 
-    final private Vector3f camDir = new Vector3f();
-    final private Vector3f camLeft = new Vector3f();
+    private Geometry red_cage_invisible_geo;
+    private Geometry blue_cage_invisible_geo;
+
     /** Prepare Materials */
     private Material wall_mat;
     private Material red_cage_mat;
@@ -51,12 +63,24 @@ public static void main(String[] args) {
     /** Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
 
+    private int redScore= 0;
+    private int blueScore = 0;
+    private int time = 0;
+    private float tpfTime = 0.0f;
+
     static{
         floor = new Box(30f, 0.1f, 15f);
     }
 
     @Override
     public void simpleInitApp() {
+
+        StartScreenState startScreenState = new StartScreenState();
+        startScreenState.setApp(this);
+        stateManager.attach(startScreenState);
+
+
+
         /* Set up Physics Game */
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
@@ -89,9 +113,19 @@ public static void main(String[] args) {
         cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
         cam1.update();
         cam2.update();*/
+        /*
+        // Create a new font
+        assetManager.registerLoader(TrueTypeLoader.class, "ttf");
+        TrueTypeKeyBMP ttk = new TrueTypeKeyBMP("Policies/LasEnter.ttf",
+                Style.Plain, 72);
+        TrueTypeFont ttf = (TrueTypeBMP)assetManager.loadAsset(ttk);
+        ttf.setScale(16/21f);
 
-
-
+        // Create a new text geometry
+        TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
+        trueNode.setLocalTranslation((settings.getWidth()/2)-150, settings.getHeight()-50, 0);
+        guiNode.attachChild(trueNode);
+        */
 
         listerManettes();
 
@@ -108,9 +142,7 @@ public static void main(String[] args) {
         //bulletAppState.getPhysicsSpace().addCollisionListener(collisionListener);
 
         setUpKeys();
-        inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
-        // Définir l'écouteur d'action pour le clic gauche
-        inputManager.addListener(actionListener, "LeftClick");
+
 
         /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
@@ -287,15 +319,15 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(wall_phy1);
 
         RigidBodyControl wall_phy2 = new RigidBodyControl(0.0f);
-        wall_geo4.addControl(wall_phy2);
+        wall_geo2.addControl(wall_phy2);
         bulletAppState.getPhysicsSpace().add(wall_phy2);
 
         RigidBodyControl wall_phy3 = new RigidBodyControl(0.0f);
-        wall_geo5.addControl(wall_phy3);
+        wall_geo3.addControl(wall_phy3);
         bulletAppState.getPhysicsSpace().add(wall_phy3);
 
         RigidBodyControl wall_phy4 = new RigidBodyControl(0.0f);
-        wall_geo6.addControl(wall_phy4);
+        wall_geo4.addControl(wall_phy4);
         bulletAppState.getPhysicsSpace().add(wall_phy4);
 
         RigidBodyControl wall_phy5 = new RigidBodyControl(0.0f);
@@ -319,10 +351,12 @@ public static void main(String[] args) {
         ans[3] = wall_phy4;
         ans[4] = wall_phy5;
         ans[5] = wall_phy6;
+
         return ans;
     }
 
     public void initCages(){
+
         /* Initialization of the red cage */
         Box red_cage_back = new Box(0.1f, 1.2f, 5f);
         Box red_cage_top = new Box(2f, 0.1f, 5f);
@@ -341,12 +375,12 @@ public static void main(String[] args) {
         Geometry red_cage_back_geo = new Geometry("Red Cage Back", red_cage_back);
         Geometry red_cage_top_geo = new Geometry("Red Cage Top", red_cage_top);
 
-        Geometry red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
+        red_cage_invisible_geo = new Geometry("Red Cage Invisible", red_cage_invisible);
 
         Geometry blue_cage_back_geo = new Geometry("Blue Cage Back", blue_cage_back);
         Geometry blue_cage_top_geo = new Geometry("Blue Cage Top", blue_cage_top);
 
-        Geometry blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
+        blue_cage_invisible_geo = new Geometry("Blue Cage Invisible", blue_cage_invisible);
 
         /* Move the geometries to the correct position */
         red_cage_back_geo.move(-30.9f, 0, 0);
@@ -415,36 +449,39 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(floor_phy);
     }
 
-    private boolean dragging = false;
-    private Vector2f dragOffset = new Vector2f();
-
-    private final int joyCarré = 0;
-    private final int joyCroix = 1;
-    private final int joyCercle = 2;
-    private final int joyTriangle = 3;
-    private final int joyLeftStickX = 0;
-    private final int joyLeftStickY = 1;
-    private final int joyRightStickX = 2;
-    private final int joyButtonL2 = 3;
-    private final int joyButtonR2 = 4;
-    private final int joyRightStickY = 5;
 
     private void setUpKeys() {
-        inputManager.addMapping("Click", new MouseAxisTrigger(MouseInput.BUTTON_LEFT, true));
-        inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarré));
+        int joyCarre = 0;
+        inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarre));
+        int joyTriangle = 3;
         inputManager.addMapping("Button_Triangle", new JoyButtonTrigger(0, joyTriangle));
+        int joyCercle = 2;
         inputManager.addMapping("Button_Cercle", new JoyButtonTrigger(0, joyCercle));
+        int joyCroix = 1;
         inputManager.addMapping("Button_Croix", new JoyButtonTrigger(0, joyCroix));
+        int joyLeftStickX = 0;
         inputManager.addMapping("PS5LeftJoystickLeftBottom", new JoyAxisTrigger(0, joyLeftStickX, true));
+        int joyLeftStickY = 1;
         inputManager.addMapping("PS5LeftJoystickRight", new JoyAxisTrigger(0, joyLeftStickY, false));
+        int joyRightStickX = 2;
         inputManager.addMapping("PS5RightJoystickRightBottom", new JoyAxisTrigger(0, joyRightStickX, false));
+        int joyButtonL2 = 3;
         inputManager.addMapping("PS5ButtonL2", new JoyAxisTrigger(0, joyButtonL2, false));
+        int joyButtonR2 = 4;
         inputManager.addMapping("PS5ButtonR2", new JoyAxisTrigger(0, joyButtonR2, false));
+        int joyRightStickY = 5;
         inputManager.addMapping("PS5RightJoystickLeft", new JoyAxisTrigger(0, joyRightStickY, false));
+        inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
+        inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
 
         inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
-        inputManager.addListener(actionListener, "Click");
+        inputManager.addListener(actionListener, "Escape");
+
+        inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
+        // Définir l'écouteur d'action pour le clic gauche
+        inputManager.addListener(actionListener, "LeftClick");
+
         inputManager.addJoystickConnectionListener(new JoystickConnectionListener() {
             @Override
             public void onConnected(Joystick joystick) {
@@ -461,10 +498,6 @@ public static void main(String[] args) {
 
     private final ActionListener actionListener = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
-
-            if (name.equals("MouseReleased")) {
-                dragging = false;
-            }
             if (name.equals("Button_Croix") && isPressed) {
                 System.out.println("Button Croix pressed");
             }
@@ -477,6 +510,20 @@ public static void main(String[] args) {
             if (name.equals("Button_Cercle") && isPressed) {
                 System.out.println("Button Cercle pressed");
             }
+            if(name.equals("Escape") && isPressed){
+                if(isStarted){
+                    if(!isPaused){
+                        isPaused = true;
+                        nifty.gotoScreen("pause");
+                    }else{
+                        nifty.gotoScreen("hud");
+                        isPaused = false;
+                    }
+                }else{
+                    stop();
+                }
+            }
+
             if (name.equals("LeftClick") && isPressed) {
                 click = true;
             }
@@ -546,57 +593,97 @@ public static void main(String[] args) {
     }
 
     public void simpleUpdate(float tpf) {
+        if(!isPaused) {
+            /*
+            tpfTime += tpf;
+            if (tpfTime >= 1.0f) {
+                // Une seconde s'est écoulée, incrémenter le compteur
+                time++;
+                tpfTime = 0.0f;
+            }
+            */
 
-        Vector3f bloqueRaquette;
-        Vector3f bloquePalet;
-
-        Vector3f rotatePalet;
-
-        player.setAngularVelocity(new Vector3f(0f, 0f, 0f));
-        bloqueRaquette = player.getLinearVelocity();
-        player.setLinearVelocity(new Vector3f(bloqueRaquette.x, 0f, bloqueRaquette.z));
-
-        rotatePalet = palet.getAngularVelocity();
-        palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
-        bloquePalet = palet.getLinearVelocity();
-        palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
-
-
-        if (click) {
-
-            // Reset results list.
-            CollisionResults results = new CollisionResults();
-            // Convert screen click to 3d position
-            Vector2f click2d = inputManager.getCursorPosition();
-            Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
-            Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
-            // Aim the ray from the clicked spot forwards.
-            Ray ray = new Ray(click3d, dir);
-            // Collect intersections between ray and all nodes in results list.
-            rootNode.collideWith(ray, results);
-            for (int i = 0; i < results.size(); i++) {
-                //On ne garde que la collision avec le sol
-                if (results.getCollision(i).getGeometry().getName() == "Floor") {
+            if(blueScore == 5 || redScore == 5){
+                isPaused = true;
+                isStarted = false;
+                nifty.gotoScreen("end");
+            }
 
 
-                    Vector3f posSouris = results.getCollision(i).getContactPoint();
-                    Vector3f posPalet = player.getPhysicsLocation();
+            Vector3f bloqueRaquette;
+            Vector3f bloquePalet;
 
-                    // Pour eviter que la raquette est Parkinson
-                    if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
-                        Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
-                        float distance = direction.length();
-                        // Normaliser le vecteur de déplacement pour avoir une direction unitaire
-                        direction = direction.normalize();
-                        float speedMultiplier = Math.min(distance / 6, 1.0f);
-                        // Appliquer le déplacement au joueur
-                        player.setLinearVelocity(direction.mult(speedMultiplier * 75)); // Multiplier par une vitesse de déplacement
-                    } else {
-                        // Arreter le déplacement du joueur
-                        player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+            Vector3f rotatePalet;
+
+            player.setAngularVelocity(new Vector3f(0f, 0f, 0f));
+            bloqueRaquette = player.getLinearVelocity();
+            player.setLinearVelocity(new Vector3f(bloqueRaquette.x, 0f, bloqueRaquette.z));
+
+            rotatePalet = palet.getAngularVelocity();
+            palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
+            bloquePalet = palet.getLinearVelocity();
+            palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
+
+            // Mettre à jour le score et le temps
+            Element blueScoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("blueScoreText");
+            Element redScoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("redScoreText");
+            //Element timeText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("timeText");
+
+            Objects.requireNonNull(Objects.requireNonNull(blueScoreText).getRenderer(TextRenderer.class)).setText("Blue score: " + blueScore);
+            Objects.requireNonNull(Objects.requireNonNull(redScoreText).getRenderer(TextRenderer.class)).setText("Red score: " + redScore);
+            //Objects.requireNonNull(Objects.requireNonNull(timeText).getRenderer(TextRenderer.class)).setText("Time: " + time);
+
+
+            if (click) {
+
+                // Reset results list.
+                CollisionResults results = new CollisionResults();
+                // Convert screen click to 3d position
+                Vector2f click2d = inputManager.getCursorPosition();
+                Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
+                Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
+                // Aim the ray from the clicked spot forwards.
+                Ray ray = new Ray(click3d, dir);
+                // Collect intersections between ray and all nodes in results list.
+                rootNode.collideWith(ray, results);
+                for (int i = 0; i < results.size(); i++) {
+                    //On ne garde que la collision avec le sol
+                    if (results.getCollision(i).getGeometry().getName() == "Floor") {
+
+
+                        Vector3f posSouris = results.getCollision(i).getContactPoint();
+                        Vector3f posPalet = player.getPhysicsLocation();
+
+                        // Pour eviter que la raquette est Parkinson
+                        if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
+                            Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
+                            float distance = direction.length();
+                            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                            direction = direction.normalize();
+                            float speedMultiplier = Math.min(distance / 6, 1.0f);
+                            // Appliquer le déplacement au joueur
+                            player.setLinearVelocity(direction.mult(speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
+                        } else {
+                            // Arreter le déplacement du joueur
+                            player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+                        }
                     }
                 }
             }
+        }else{
+            player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+            palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
         }
     }
+
+    @SuppressWarnings("unused")
+    public void pauseGame() {
+        isPaused = true;
+    }
+
+    @SuppressWarnings("unused")
+    public void resumeGame() {
+        isPaused = false;
+    }
+
 }

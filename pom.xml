@@ -149,8 +149,14 @@
       <artifactId>jme-ttf</artifactId>
       <version>3.0.1</version>
     </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>RELEASE</version>
+      <scope>provided</scope>
+    </dependency>
 
-	
+
   </dependencies>
   
   <build>
