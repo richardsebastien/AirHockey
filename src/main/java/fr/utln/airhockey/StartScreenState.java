@@ -44,9 +44,9 @@ public class StartScreenState extends BaseAppState implements ScreenController {
                 app.getGuiViewPort());
 
         this.nifty = niftyDisplay.getNifty();
-        this.app.setNifty(this.nifty); // Assuming you have a setter for Nifty in your Main class
+        this.app.setNifty(this.nifty);
 
-        // Load your XML and go to your screen
+
         nifty.fromXml("Interface/Screens.xml", "start", this);
         nifty.gotoScreen("start");
 
@@ -114,6 +114,8 @@ public class StartScreenState extends BaseAppState implements ScreenController {
 
     public void restartGame() {
         System.out.println("Restarting game");
+        app.setIsStarted(true);
+        app.setIsPaused(false);
         nifty.gotoScreen("hud");
     }
 }

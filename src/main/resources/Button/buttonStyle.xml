@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nifty-styles xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
+
+    <!-- +++++++++++++++++++++++++++++++++++++ -->
+    <!-- style for the button background panel -->
+    <!-- +++++++++++++++++++++++++++++++++++++ -->
+    <style id="nifty-button#panel">
+        <attributes backgroundColor="#0000" paddingLeft="7px" paddingRight="7px" width="550px" height="100px" paddingTop="50px" childLayout="center"
+                    visibleToMouse="true" font="Policies/TiltNeon-96-White.fnt"/>
+        <effect>
+            <onHover name="border" color="#822f" post="true"/>
+            <onHover name="textColorPulsate" startColor="#000f" endColor="#ffff" cycleLength="1000" post="false"/>
+            <onFocus name="border" color="#822f" post="true"/>
+            <onEnabled name="renderQuad" color="#0000"/>
+            <onDisabled name="renderQuad" color="#0000"/>
+            <onActive name="border" color="#888f" post="true"/>
+        </effect>
+    </style>
+
+    <!-- +++++++++++++++++++++++++++++++++++++ -->
+    <!-- style for the button text -->
+    <!-- +++++++++++++++++++++++++++++++++++++ -->
+    <style id="nifty-button#text" base="button-font">
+        <attributes font="Policies/TiltNeon-96-White.fnt" align="center" valign="center" textHAlign="center" textVAlign="center" visibleToMouse="false"/>
+           <effect>
+                <onHover name="textColorPulsate" startColor="#000f" endColor="#ffff" cycleLength="1000" post="false"/>
+                <onFocus name="textColor" color="#ffff"/>
+                <onEnabled name="textColor" color="#ffff"/>
+                <onDisabled name="textColor" color="#888f"/>
+                <onActive name="textColor" color="#ffff"/>
+            </effect>
+
+    </style>
+</nifty-styles>
