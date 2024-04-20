@@ -33,6 +33,20 @@ public class Main extends SimpleApplication implements ActionListener {
     private BulletAppState bulletAppState;
     private Node player;
 
+    /* For camera movement */
+
+    private final float duration = 2f;// Duration of the movement of the camera
+    private Node camNode = new Node("camNode");
+
+    private Vector3f startLocation;
+    private Vector3f targetLocation;
+    private Vector3f startLookAt;
+    private Vector3f targetLookAt;
+    private long startTime;
+    private Quaternion startRotation;
+    private Quaternion targetRotation;
+    private boolean camIsMoving = false;
+
     final private Vector3f walkDirection = new Vector3f();
     private boolean left = false, right = false, up = false, down = false, click = false;
 
@@ -76,6 +90,8 @@ public class Main extends SimpleApplication implements ActionListener {
         /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
+        camNode.setLocalTranslation(cam.getLocation());
+        rootNode.attachChild(camNode);
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
     }
 
@@ -374,21 +390,77 @@ public class Main extends SimpleApplication implements ActionListener {
         inputManager.addMapping("Down", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
         inputManager.addMapping("1 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD1));
         inputManager.addMapping("2 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD2));
-        inputManager.addListener(actionListener, "1 numpad", "2 numpad");
+        inputManager.addMapping("3 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD3));
+        inputManager.addMapping("4 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD4));
+        inputManager.addMapping("5 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD5));
+        inputManager.addMapping("6 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD6));
+        inputManager.addListener(actionListener, "1 numpad", "2 numpad", "3 numpad", "4 numpad", "5 numpad", "6 numpad");
         lastCursorPosition.set(inputManager.getCursorPosition());
 
     }
 
     final private ActionListener actionListener = (name, keyPressed, tpf) -> {
         if (name.equals("1 numpad")) {
-            cam.setLocation(new Vector3f(0, 75f, 0f));
-            cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
+            moveCamera(new Vector3f(0, 75f, 0f), new Vector3f(-1, 0, 0));
         }
         if (name.equals("2 numpad")) {
-            cam.setLocation(new Vector3f(55, 45f, 0f));
-            cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
+            moveCamera(new Vector3f(0f, 75f, 0f), new Vector3f(1, 0, 0));
+        }
+        if (name.equals("3 numpad")) {
+            moveCamera(new Vector3f(55f, 45f, 0f), new Vector3f(-1, 0, 0));
+        }
+        if (name.equals("4 numpad")) {
+            moveCamera(new Vector3f(-55f, 45f, 0f), new Vector3f(1, 0, 0));
+        }
+        if (name.equals("5 numpad")) {
+            moveCamera(new Vector3f(0f, 45f, -45f), new Vector3f(0, 0, 1));
+        }
+        if (name.equals("6 numpad")) {
+            moveCamera(new Vector3f(0f, 45f, 45f), new Vector3f(0, 0, -1));
         }
     };
+
+    public void moveCamera(Vector3f end, Vector3f endDir) {
+        this.startLocation = cam.getLocation();
+        this.targetLocation = end;
+        this.startLookAt = cam.getDirection();
+        this.targetLookAt = endDir;
+        this.startTime = System.currentTimeMillis();
+        this.startRotation = camNode.getLocalRotation();
+        this.targetRotation = startRotation.clone().mult(new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y)); // 180 degree rotation around Y axis
+        this.camIsMoving = true;
+    }
+
+    @Override
+    public void simpleUpdate(float tpf) {
+        if (camIsMoving) {
+            float elapsedTime = (System.currentTimeMillis() - startTime) / 1000f;
+            float t = elapsedTime / duration; // t increases linearly with time
+
+            Vector3f location = new Vector3f(
+                    FastMath.interpolateLinear(t, startLocation.x, targetLocation.x),
+                    FastMath.interpolateLinear(t, startLocation.y, targetLocation.y),
+                    FastMath.interpolateLinear(t, startLocation.z, targetLocation.z)
+            );
+
+            Vector3f currentLookAt = new Vector3f();
+            currentLookAt.interpolateLocal(startLookAt, targetLookAt, t);
+
+            Quaternion currentRotation = new Quaternion();
+            currentRotation.slerp(startRotation, targetRotation, t);
+
+            camNode.setLocalTranslation(location);
+            camNode.setLocalRotation(currentRotation);
+            cam.lookAt(currentLookAt, Vector3f.UNIT_Y);
+
+            // Update the camera's location
+            cam.setLocation(camNode.getLocalTranslation());
+
+            if (t >= 1) {
+                camIsMoving = false;
+            }
+        }
+    }
 
     @Override
     public void onAction(String s, boolean b, float v) {
