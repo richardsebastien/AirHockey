@@ -49,6 +49,7 @@ public static void main(String[] args) {
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
     private RigidBodyControl player;
+    private RigidBodyControl player2;
     private RigidBodyControl palet;
 
     /** Variables for the bonus */
@@ -56,6 +57,18 @@ public static void main(String[] args) {
     private final List<Geometry> sphereGeoms = new ArrayList<>();
     private int bonuses = 0;
     private float bonusTimer = 0.0f;
+
+    /** Variables for taking a bonus */
+    private float growTimerp = 0.0f;
+    private boolean growp = false;
+    private float shrinkTimerp = 0.0f;
+    private boolean shrinkp = false;
+    private float speedTimer = 0.0f;
+    private boolean speed = false;
+    private float growTimerr = 0.0f;
+    private boolean growr = false;
+    private float shrinkTimerr = 0.0f;
+    private boolean shrinkr = false;
 
     private boolean click = false;
     private final Vector2f lastCursorPosition = new Vector2f();
@@ -144,6 +157,8 @@ public static void main(String[] args) {
         initFloor();
         palet = initPalet();
         player = initRaquette();
+        player2 = initRaquette();
+        player2.setPhysicsLocation(new Vector3f(-4f, 2f, -4f));
         // Init the inputs
         listerManettes();
         setUpKeys();
@@ -601,6 +616,55 @@ public static void main(String[] args) {
                 tpfTime = 0.0f;
             }
             */
+            // If the palet was growed
+            if (growp){
+                if (growTimerp > 10f){
+                    growTimerp = 0.0f;
+                    growp = false;
+                    resetPalet(palet);
+                }
+                else {
+                    growTimerp += tpf;
+                }
+            // If the palet was shrinked
+            } else if (shrinkp) {
+                if (shrinkTimerp > 10f){
+                    shrinkTimerp = 0.0f;
+                    shrinkp = false;
+                    resetPalet(palet);
+                }
+                else {
+                    shrinkTimerp += tpf;
+                }
+            // If the palet was speeded
+            } else if (speed) {
+                if (speedTimer > 10f){
+                    speedTimer = 0.0f;
+                    speed = false;
+                    palet.setLinearVelocity(palet.getLinearVelocity().mult(0.666f));
+                }
+                else {
+                    speedTimer += tpf;
+                }
+            } else if (growr) {
+                if (growTimerr > 20f){
+                    growTimerr = 0.0f;
+                    growr = false;
+                    resetRaquette(player2);
+                }
+                else {
+                    growTimerr += tpf;
+                }
+            } else if (shrinkr) {
+                if (shrinkTimerr > 20f){
+                    shrinkTimerr = 0.0f;
+                    shrinkr = false;
+                    resetRaquette(player2);
+                }
+                else {
+                    shrinkTimerr += tpf;
+                }
+            }
             if (bonuses >= 1){
                 for (int i = 0; i < sphereGhostControls.size(); i++) {
                     GhostControl sphereGhostControl = sphereGhostControls.get(i);
@@ -616,10 +680,53 @@ public static void main(String[] args) {
                         sphereGeoms.remove(i);
 
                         bonuses -= 1;
+                        Random rand = new Random();
+                        int bonus = rand.nextInt(7);
+                        switch (bonus){
+                            case 1:
+                                // Palet goes 50% faster
+                                palet.setLinearVelocity(palet.getLinearVelocity().mult(1.5f));
+                                speedTimer += tpf;
+                                speed = true;
+                                break;
+                            case 2:
+                                // Palet grows 20%
+                                growPalet(palet);
+                                growTimerp += tpf;
+                                growp = true;
+                                break;
+                            case 3:
+                                // Palet shrinks 20%
+                                shrinkPalet(palet);
+                                shrinkTimerp += tpf;
+                                shrinkp = true;
+                                break;
+                            case 4:
+                                // Palet goes to the adversary cage
+                                Vector3f cagePosition = red_cage.getPhysicsLocation(); // Change this to the position of the cage
+                                Vector3f paletPosition = palet.getPhysicsLocation();
+                                Vector3f directionToCage = cagePosition.subtract(paletPosition).normalizeLocal();
+                                float currentSpeed = palet.getLinearVelocity().length();
+                                Vector3f newVelocity = directionToCage.mult(currentSpeed*1.5f);
+                                palet.setLinearVelocity(newVelocity);
+                                break;
+                            case 5:
+                                // Adversary raquette grows 20%
+                                growRaquette(player2);
+                                growTimerr += tpf;
+                                growr = true;
+                                break;
+                            case 6:
+                                // Adversary raquette shrinks 20%
+                                shrinkRaquette(player2);
+                                shrinkTimerr += tpf;
+                                shrinkr = true;
+                                break;
+                        }
                     }
                 }
             }
-            if (bonusTimer > 5f) {
+            if (bonusTimer > 10f) {
                 Random rand = new Random();
                 float x = rand.nextFloat() * (15 - (-15)) + (-15);
                 float z = rand.nextFloat() * (12 - (-12)) + (-12);
@@ -751,6 +858,41 @@ public static void main(String[] args) {
             }
         }
         return false;
+    }
+
+    public void growPalet(RigidBodyControl palet){
+        Geometry geom = (Geometry) palet.getSpatial();
+        Vector3f scale = geom.getLocalScale();
+        geom.setLocalScale(scale.mult(1.2f));
+    }
+
+    public void shrinkPalet(RigidBodyControl palet){
+        Geometry geom = (Geometry) palet.getSpatial();
+        Vector3f scale = geom.getLocalScale();
+        geom.setLocalScale(scale.mult(0.8f));
+    }
+
+    public void growRaquette(RigidBodyControl raquette) {
+        Node node = (Node) raquette.getSpatial();
+        Geometry cylinder = (Geometry) node.getChild(0);
+        cylinder.setLocalScale(cylinder.getLocalScale().mult(1.2f));
+    }
+
+    public void shrinkRaquette(RigidBodyControl raquette) {
+        Node node = (Node) raquette.getSpatial();
+        Geometry cylinder = (Geometry) node.getChild(0);
+        cylinder.setLocalScale(cylinder.getLocalScale().mult(0.8f));
+    }
+
+    public void resetRaquette(RigidBodyControl raquette) {
+        Node node = (Node) raquette.getSpatial();
+        Geometry cylinder = (Geometry) node.getChild(0);
+        cylinder.setLocalScale(1f, 1f, 1f);
+    }
+
+    public void resetPalet(RigidBodyControl palet){
+        Geometry geom = (Geometry) palet.getSpatial();
+        geom.setLocalScale(1f, 1f, 1f);
     }
 
     @SuppressWarnings("unused")
