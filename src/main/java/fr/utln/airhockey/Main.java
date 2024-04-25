@@ -25,6 +25,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Objects;
+import java.util.Random;
 
 public class Main extends SimpleApplication implements ActionListener {
 public static void main(String[] args) {
@@ -47,6 +48,12 @@ public static void main(String[] args) {
     private BulletAppState bulletAppState;
     private RigidBodyControl player;
     private RigidBodyControl palet;
+
+    /** Variables for the bonus */
+    private GhostControl sphereGhostControl;
+    private Geometry sphereGeom;
+    private int bonuses = 0;
+    private float bonusTimer = 0.0f;
 
     private boolean click = false;
     private final Vector2f lastCursorPosition = new Vector2f();
@@ -146,6 +153,30 @@ public static void main(String[] args) {
 
         lastCursorPosition.set(inputManager.getCursorPosition());
 
+    }
+
+    public void initBonus(float x, float z) {
+        // Create a sphere
+        Sphere sphereMesh = new Sphere(32, 32, 1f);
+        sphereGeom = new Geometry("Bonus Sphere", sphereMesh);
+
+        Material sphereMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        sphereMat.setColor("Color", ColorRGBA.Blue);
+        sphereGeom.setMaterial(sphereMat);
+
+        rootNode.attachChild(sphereGeom);
+        /*
+        Node bonusNode = new Node("Bonus Node");
+        bonusNode.attachChild(sphereGeom);*/
+        // Create a GhostControl with a sphere collision shape
+        sphereGhostControl = new GhostControl(new SphereCollisionShape(1f));
+
+        // Add the GhostControl to the sphere
+        sphereGeom.addControl(sphereGhostControl);
+
+        bulletAppState.getPhysicsSpace().add(sphereGhostControl);
+
+        sphereGeom.setLocalTranslation(new Vector3f(x, 1.2f, z));
     }
 
     public void initMaterials() {
@@ -567,7 +598,34 @@ public static void main(String[] args) {
                 tpfTime = 0.0f;
             }
             */
+            if (bonuses == 1){
+                if (sphereGhostControl.getOverlappingObjects().contains(palet)) {
+                    sphereGeom.removeFromParent();
+                    bulletAppState.getPhysicsSpace().remove(sphereGhostControl);
+                    bonuses = 0;
+                    Random rand = new Random();
+                    int bonus = rand.nextInt(2); // Adjust the limit to determine how much different bonuses you want
+                    switch (bonus) {
+                        case 0:
+                            System.out.println("Bonus 1");
+                            break;
+                        case 1:
+                            System.out.println("Bonus 2");
+                            break;
+                }
 
+            }
+            else {
+                if (bonusTimer > 5f) {
+                    Random rand = new Random();
+                    initBonus(rand.nextFloat() * (15 - (-15)) + (-15), rand.nextFloat() * (12 - (-12)) + (-12));
+                    bonuses = 1;
+                    bonusTimer = 0.0f;
+                }
+                else {
+                    bonusTimer += tpf;
+                }
+            }
             if(blueScore == 5 || redScore == 5){
                 isPaused = true;
                 isStarted = false;
