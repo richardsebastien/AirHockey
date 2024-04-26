@@ -61,6 +61,18 @@ public static void main(String[] args) {
     @Setter
     private int mode = 0;
 
+    /** Movement of the camera */
+    private final float duration = 2f;// Duration of the movement of the camera
+    private Node camNode = new Node("camNode");
+    private Vector3f startLocation;
+    private Vector3f targetLocation;
+    private Vector3f startLookAt;
+    private Vector3f targetLookAt;
+    private long startTime;
+    private Quaternion startRotation;
+    private Quaternion targetRotation;
+    private boolean camIsMoving = false;
+
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
 
@@ -559,7 +571,7 @@ public static void main(String[] args) {
 
         inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
-        inputManager.addListener(actionListener, "Escape", "R");
+        inputManager.addListener(actionListener, "Escape", "R", "1 numpad", "2 numpad", "3 numpad", "4 numpad", "5 numpad", "6 numpad");
 
         inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
         // Définir l'écouteur d'action pour le clic gauche
@@ -609,11 +621,40 @@ public static void main(String[] args) {
             if (name.equals("R")){
                 resetPositions();
             }
+            if (name.equals("1 numpad")) {
+                moveCamera(new Vector3f(0, 75f, 0f), new Vector3f(-1, 0, 0));
+            }
+            if (name.equals("2 numpad")) {
+                moveCamera(new Vector3f(0f, 75f, 0f), new Vector3f(1, 0, 0));
+            }
+            if (name.equals("3 numpad")) {
+                moveCamera(new Vector3f(55f, 45f, 0f), new Vector3f(-1, 0, 0));
+            }
+            if (name.equals("4 numpad")) {
+                moveCamera(new Vector3f(-55f, 45f, 0f), new Vector3f(1, 0, 0));
+            }
+            if (name.equals("5 numpad")) {
+                moveCamera(new Vector3f(0f, 45f, -45f), new Vector3f(0, 0, 1));
+            }
+            if (name.equals("6 numpad")) {
+                moveCamera(new Vector3f(0f, 45f, 45f), new Vector3f(0, 0, -1));
+            }
 
             //Fin du clic gauche
             click = name.equals("LeftClick") && isPressed;
         }
     };
+
+    public void moveCamera(Vector3f end, Vector3f endDir) {
+        this.startLocation = cam.getLocation();
+        this.targetLocation = end;
+        this.startLookAt = cam.getDirection();
+        this.targetLookAt = endDir;
+        this.startTime = System.currentTimeMillis();
+        this.startRotation = camNode.getLocalRotation();
+        this.targetRotation = startRotation.clone().mult(new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y)); // 180 degree rotation around Y axis
+        this.camIsMoving = true;
+    }
 
     public void resetPositions(){
         player.setPhysicsLocation(new Vector3f(15,1,0));
@@ -770,7 +811,6 @@ public static void main(String[] args) {
     }
 
     public void simpleUpdate(float tpf) {
-
         if(!isPaused) {
             palet.setAngularVelocity(new Vector3f(0,0,0));
             palet.setAngularFactor(0);
@@ -778,6 +818,34 @@ public static void main(String[] args) {
                 EnnemiComportement();
             else
                 EnnemiComportementPong();
+
+            if (camIsMoving) {
+                float elapsedTime = (System.currentTimeMillis() - startTime) / 1000f;
+                float t = elapsedTime / duration; // t increases linearly with time
+
+                Vector3f location = new Vector3f(
+                        FastMath.interpolateLinear(t, startLocation.x, targetLocation.x),
+                        FastMath.interpolateLinear(t, startLocation.y, targetLocation.y),
+                        FastMath.interpolateLinear(t, startLocation.z, targetLocation.z)
+                );
+
+                Vector3f currentLookAt = new Vector3f();
+                currentLookAt.interpolateLocal(startLookAt, targetLookAt, t);
+
+                Quaternion currentRotation = new Quaternion();
+                currentRotation.slerp(startRotation, targetRotation, t);
+
+                camNode.setLocalTranslation(location);
+                camNode.setLocalRotation(currentRotation);
+                cam.lookAt(currentLookAt, Vector3f.UNIT_Y);
+
+                // Update the camera's location
+                cam.setLocation(camNode.getLocalTranslation());
+
+                if (t >= 1) {
+                    camIsMoving = false;
+                }
+            }
             /*
             tpfTime += tpf;
             if (tpfTime >= 1.0f) {
