@@ -29,13 +29,21 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 public class Main extends SimpleApplication implements ActionListener {
-public static void main(String[] args) {
+    public static void main(String[] args) {
         AppSettings settings = new AppSettings(true);
         settings.setUseJoysticks(true);
         Main app = new Main();
         app.setSettings(settings);
         app.start();
+        // Définition du vecteur de gravité
+        Vector3f gravity = new Vector3f(0, -30f, 0); // Exemple : gravité augmentée dans la direction vers le bas
+
+// Modification de la gravité dans le PhysicsSpace
+        //bulletAppState.getPhysicsSpace().setGravity(gravity);
     }
     @Setter
     private Nifty nifty;
@@ -47,9 +55,9 @@ public static void main(String[] args) {
     private Boolean isStarted = false;
 
     /** Prepare the Physics Application State (jBullet) */
-    private BulletAppState bulletAppState;
+    private static BulletAppState bulletAppState;
     private RigidBodyControl player;
-    private RigidBodyControl player2;
+    private RigidBodyControl ai;
     private RigidBodyControl palet;
 
     /** Variables for the bonus */
@@ -156,9 +164,11 @@ public static void main(String[] args) {
         initCages();
         initFloor();
         palet = initPalet();
+        palet.setPhysicsLocation(new Vector3f(10,1,0));
         player = initRaquette();
-        player2 = initRaquette();
-        player2.setPhysicsLocation(new Vector3f(-4f, 2f, -4f));
+        player.setPhysicsLocation(new Vector3f(15,1,0));
+        ai = initRaquettePong();
+        ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
         // Init the inputs
         listerManettes();
         setUpKeys();
@@ -237,13 +247,12 @@ public static void main(String[] args) {
 
         geom.rotate(FastMath.HALF_PI, 0, 0);
         mat.setColor("Color", ColorRGBA.Red); // Couleur du matériau
-        geom.setMaterial(mat);                   // set the cube's material
+        geom.setMaterial(mat);// set the cube's material
 
         RigidBodyControl box_phy = new RigidBodyControl(1f);
         /* Add physical brick to physics space. */
         geom.addControl(box_phy);
         bulletAppState.getPhysicsSpace().add(box_phy);
-        box_phy.setAngularFactor(0f);
         box_phy.setRestitution(1.0f);
         box_phy.setFriction(0f);
 
@@ -300,6 +309,33 @@ public static void main(String[] args) {
         return box_phy;
 
     }
+
+    public RigidBodyControl initRaquettePong(){
+
+
+        Box pong = new Box(1.5f, 1.5f, 3f);
+        Geometry pong_geo = new Geometry("Pong", pong);
+        Material PongMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        PongMat.setColor("Color", ColorRGBA.Blue);
+        pong_geo.setMaterial(wall_mat);
+        pong_geo.rotate(0,0,0.2f);
+
+
+
+
+        RigidBodyControl pong_phy = new RigidBodyControl(100f);
+        /* Add physical brick to physics space. */
+        pong_geo.addControl(pong_phy);
+        bulletAppState.getPhysicsSpace().add(pong_phy);
+        pong_phy.setRestitution(1.0f);
+        pong_phy.setFriction(0f);
+
+        rootNode.attachChild(pong_geo);
+
+        return pong_phy;
+
+    }
+
 
     public RigidBodyControl[] initWalls(){
         RigidBodyControl[] ans = new RigidBodyControl[6];
@@ -376,6 +412,81 @@ public static void main(String[] args) {
         ans[3] = wall_phy4;
         ans[4] = wall_phy5;
         ans[5] = wall_phy6;
+
+
+
+        /*
+        Box wall1_i = new Box(31f, 1.5f, 1f);
+        Box wall2_i = new Box(31f, 1.5f, 1f);
+        Box wall3_i = new Box(2f, 1.2f, 4.5f);
+        Box wall4_i = new Box(2f, 1.2f, 4.5f);
+        Box wall5_i = new Box(2f, 1.2f, 4.5f);
+        Box wall6_i = new Box(2f, 1.2f, 4.5f);
+        Geometry wall_igeo1 = new Geometry("Wall1", wall1_i);
+        Geometry wall_igeo2 = new Geometry("Wall2", wall2_i);
+        Geometry wall_igeo3 = new Geometry("Wall3", wall3_i);
+        Geometry wall_igeo4 = new Geometry("Wall4", wall4_i);
+        Geometry wall_igeo5 = new Geometry("Wall5", wall5_i);
+        Geometry wall_igeo6 = new Geometry("Wall6", wall6_i);
+        wall_igeo1.move(0, 0, -15);
+        wall_igeo2.move(0, 0, 15);
+        wall_igeo3.move(-29, 0, -9.5f);
+        wall_igeo4.move(29, 0, 9.5f);
+        wall_igeo5.move(-29, 0, 9.5f);
+        wall_igeo6.move(29, 0, -9.5f);
+
+
+        Material invisibleMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        invisibleMat.setColor("Color2", new ColorRGBA(0, 0, 0, 0)); // Définir la couleur transparente (alpha = 0)
+
+        wall_igeo1.setMaterial(invisibleMat);
+        wall_igeo2.setMaterial(invisibleMat);
+        wall_igeo3.setMaterial(invisibleMat);
+        wall_igeo4.setMaterial(invisibleMat);
+        wall_igeo5.setMaterial(invisibleMat);
+        wall_igeo6.setMaterial(invisibleMat);
+
+        rootNode.attachChild(wall_igeo1);
+        rootNode.attachChild(wall_igeo2);
+        rootNode.attachChild(wall_igeo3);
+        rootNode.attachChild(wall_igeo4);
+        rootNode.attachChild(wall_igeo5);
+        rootNode.attachChild(wall_igeo6);
+
+
+        RigidBodyControl wall_iphy1 = new RigidBodyControl(0.0f);
+        wall_igeo1.addControl(wall_iphy1);
+        bulletAppState.getPhysicsSpace().add(wall_iphy1);
+
+        RigidBodyControl wall_iphy2 = new RigidBodyControl(0.0f);
+        wall_igeo2.addControl(wall_iphy2);
+        bulletAppState.getPhysicsSpace().add(wall_iphy2);
+
+        RigidBodyControl wall_iphy3 = new RigidBodyControl(0.0f);
+        wall_igeo3.addControl(wall_iphy3);
+        bulletAppState.getPhysicsSpace().add(wall_iphy3);
+
+        RigidBodyControl wall_iphy4 = new RigidBodyControl(0.0f);
+        wall_igeo4.addControl(wall_iphy4);
+        bulletAppState.getPhysicsSpace().add(wall_iphy4);
+
+        RigidBodyControl wall_iphy5 = new RigidBodyControl(0.0f);
+        wall_igeo5.addControl(wall_iphy5);
+        bulletAppState.getPhysicsSpace().add(wall_iphy5);
+
+        RigidBodyControl wall_iphy6 = new RigidBodyControl(0.0f);
+        wall_igeo6.addControl(wall_iphy6);
+        bulletAppState.getPhysicsSpace().add(wall_iphy6);
+
+        wall_iphy1.setRestitution(1.0f);
+        wall_iphy2.setRestitution(1.0f);
+        wall_iphy3.setRestitution(1.0f);
+        wall_iphy4.setRestitution(1.0f);
+        wall_iphy5.setRestitution(1.0f);
+        wall_iphy6.setRestitution(1.0f);
+
+        */
+
 
         return ans;
     }
@@ -606,6 +717,84 @@ public static void main(String[] args) {
     public void onAction(String s, boolean b, float v) {
     }
 
+    public void EnnemiComportement() {
+        ai.setAngularVelocity(new Vector3f(0,0,0));
+
+        if (palet.getPhysicsLocation().x > -5) {
+            Vector3f base = new Vector3f(-19f, 0f, 0f);
+            if ((Math.abs(base.x - ai.getPhysicsLocation().x) > 1) || (Math.abs(base.z - ai.getPhysicsLocation().z) > 1)) {
+
+                Vector3f direction = base.subtract(ai.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                // Appliquer le déplacement au joueur
+                ai.setLinearVelocity(direction.mult(30)); // Multiplier par une vitesse de déplacement
+            } else {
+                ai.setLinearVelocity(new Vector3f(0, 0, 0));
+            }
+
+
+        } else if ((palet.getPhysicsLocation().x > ai.getPhysicsLocation().x) && (palet.getPhysicsLocation().x > -17)) {
+            Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+            float distance = direction.length();
+            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            direction = direction.normalize();
+            float speedMultiplier = min(distance / 2, 1.0f);
+            // Appliquer le déplacement au joueur
+            ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
+            if (ai.getPhysicsLocation().x > -5) {
+                Vector3f temp = ai.getLinearVelocity();
+                temp.x = 0;
+                ai.setLinearVelocity(temp);
+            }
+        } else {
+            Vector3f base = new Vector3f(-25f, 0f, 0f);
+            Vector3f paletpos = palet.getPhysicsLocation();
+            float dist = base.distance(paletpos);
+            float rapport = 6.0f / dist;
+
+            Vector3f defense = new Vector3f(base.x + rapport * (paletpos.x - base.x), 0f, base.z + rapport * (paletpos.z - base.z));
+            if ((Math.abs(defense.x - ai.getPhysicsLocation().x) > 1) || (Math.abs(defense.z - ai.getPhysicsLocation().z) > 1)) {
+                Vector3f direction = defense.subtract(ai.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                // Appliquer le déplacement au joueur
+                ai.setLinearVelocity(direction.mult(40)); // Multiplier par une vitesse de déplacement
+            } else {
+                ai.setLinearVelocity(new Vector3f(0, 0, 0));
+            }
+
+        }
+    }
+
+    public void EnnemiComportementPong() {
+        ai.setAngularVelocity(new Vector3f(0,0,0));
+
+        if (palet.getPhysicsLocation().x > ai.getPhysicsLocation().x) {
+            Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+            float distance = direction.length();
+            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            direction = direction.normalize();
+            direction.setX(0);
+            float speedMultiplier = min(distance / 2, 1.0f);
+            // Appliquer le déplacement au joueur
+            ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
+        }
+        else{
+            Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+            float distance = direction.length();
+            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            direction = direction.normalize();
+            direction.setX(0);
+            float speedMultiplier = min(distance / 2, 1.0f);
+            // Appliquer le déplacement au joueur
+            ai.setLinearVelocity(direction.mult(-speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
+        }
+
+    }
+
     public void simpleUpdate(float tpf) {
         if(!isPaused) {
             /*
@@ -617,6 +806,9 @@ public static void main(String[] args) {
             }
             */
             // If the palet was growed
+
+            EnnemiComportementPong();
+
             if (growp){
                 if (growTimerp > 10f){
                     growTimerp = 0.0f;
@@ -626,7 +818,7 @@ public static void main(String[] args) {
                 else {
                     growTimerp += tpf;
                 }
-            // If the palet was shrinked
+                // If the palet was shrinked
             } else if (shrinkp) {
                 if (shrinkTimerp > 10f){
                     shrinkTimerp = 0.0f;
@@ -636,7 +828,7 @@ public static void main(String[] args) {
                 else {
                     shrinkTimerp += tpf;
                 }
-            // If the palet was speeded
+                // If the palet was speeded
             } else if (speed) {
                 if (speedTimer > 10f){
                     speedTimer = 0.0f;
@@ -650,7 +842,7 @@ public static void main(String[] args) {
                 if (growTimerr > 20f){
                     growTimerr = 0.0f;
                     growr = false;
-                    resetRaquette(player2);
+                    resetRaquette(ai);
                 }
                 else {
                     growTimerr += tpf;
@@ -659,7 +851,7 @@ public static void main(String[] args) {
                 if (shrinkTimerr > 20f){
                     shrinkTimerr = 0.0f;
                     shrinkr = false;
-                    resetRaquette(player2);
+                    resetRaquette(ai);
                 }
                 else {
                     shrinkTimerr += tpf;
@@ -712,13 +904,13 @@ public static void main(String[] args) {
                                 break;
                             case 5:
                                 // Adversary raquette grows 20%
-                                growRaquette(player2);
+                                growRaquette(ai);
                                 growTimerr += tpf;
                                 growr = true;
                                 break;
                             case 6:
                                 // Adversary raquette shrinks 20%
-                                shrinkRaquette(player2);
+                                shrinkRaquette(ai);
                                 shrinkTimerr += tpf;
                                 shrinkr = true;
                                 break;
@@ -790,7 +982,7 @@ public static void main(String[] args) {
             rotatePalet = palet.getAngularVelocity();
             palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
             bloquePalet = palet.getLinearVelocity();
-            palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
+            palet.setLinearVelocity(new Vector3f(bloquePalet.x, -1, bloquePalet.z));
 
             // Mettre à jour le score et le temps
             Element blueScoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("blueScoreText");
@@ -819,17 +1011,18 @@ public static void main(String[] args) {
                     if (Objects.equals(results.getCollision(i).getGeometry().getName(), "Floor")) {
 
                         Vector3f posSouris = results.getCollision(i).getContactPoint();
+                        posSouris.setX(max(posSouris.x,8));
                         Vector3f posPalet = player.getPhysicsLocation();
 
-                        // Pour eviter que la raquette ai Parkinson
+                        // Pour eviter que la raquette ait Parkinson
                         if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
                             Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
                             float distance = direction.length();
                             // Normaliser le vecteur de déplacement pour avoir une direction unitaire
                             direction = direction.normalize();
-                            float speedMultiplier = Math.min(distance / 6, 1.0f);
+                            float speedMultiplier = min(distance / 2, 1.0f);
                             // Appliquer le déplacement au joueur
-                            player.setLinearVelocity(direction.mult(speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
+                            player.setLinearVelocity(direction.mult(speedMultiplier * 70)); // Multiplier par une vitesse de déplacement
                             // Avoid the goals to be scored twice for 1 goal
                             if (timer > 1){
                                 timer = 0;
@@ -847,7 +1040,7 @@ public static void main(String[] args) {
             }
         }else{
             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
-            palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+            palet.setLinearVelocity(new Vector3f(0f, min(0f,palet.getLinearVelocity().y), 0f));
         }
     }
 
