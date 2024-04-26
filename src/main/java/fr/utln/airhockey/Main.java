@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
+import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 public class Main extends SimpleApplication implements ActionListener {
@@ -635,7 +636,16 @@ public static void main(String[] args) {
     }
 
     @Override
-    public void onAction(String s, boolean b, float v) {
+    public void onAction(String name, boolean isPressed, float tpf) {
+        if (name.equals("LeftClick") && isPressed) {
+            click = true;
+            inputManager.setCursorVisible(false);
+        }
+        //Fin du clic gauche
+        else {
+            click = false;
+            inputManager.setCursorVisible(true);
+        }
     }
 
     public void EnnemiComportement() {
@@ -911,6 +921,8 @@ public static void main(String[] args) {
 
             if (click) {
 
+                inputManager.setCursorVisible(false);
+
                 // Reset results list.
                 CollisionResults results = new CollisionResults();
                 // Convert screen click to 3d position
@@ -926,6 +938,7 @@ public static void main(String[] args) {
                     if (Objects.equals(results.getCollision(i).getGeometry().getName(), "Floor")) {
 
                         Vector3f posSouris = results.getCollision(i).getContactPoint();
+                        posSouris.setX(max(posSouris.x,8));
                         Vector3f posPalet = player.getPhysicsLocation();
 
                         // Pour eviter que la raquette ai Parkinson
@@ -951,6 +964,9 @@ public static void main(String[] args) {
                         }
                     }
                 }
+            }
+            else {
+                inputManager.setCursorVisible(true);
             }
         }else{
             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
@@ -1007,21 +1023,37 @@ public static void main(String[] args) {
     }
 
     public void growRaquette(RigidBodyControl raquette) {
-        Node node = (Node) raquette.getSpatial();
-        Geometry cylinder = (Geometry) node.getChild(0);
-        cylinder.setLocalScale(cylinder.getLocalScale().mult(1.2f));
+        if (whichEnnemy == 0){
+            Geometry geom = (Geometry) raquette.getSpatial();
+            geom.setLocalScale(geom.getLocalScale().mult(1.2f));
+        } else {
+            Node node = (Node) raquette.getSpatial();
+            Geometry cylinder = (Geometry) node.getChild(0);
+            cylinder.setLocalScale(cylinder.getLocalScale().mult(1.2f));
+        }
+
     }
 
     public void shrinkRaquette(RigidBodyControl raquette) {
-        Node node = (Node) raquette.getSpatial();
-        Geometry cylinder = (Geometry) node.getChild(0);
-        cylinder.setLocalScale(cylinder.getLocalScale().mult(0.8f));
+        if (whichEnnemy == 0){
+            Geometry geom = (Geometry) raquette.getSpatial();
+            geom.setLocalScale(geom.getLocalScale().mult(0.8f));
+        } else {
+            Node node = (Node) raquette.getSpatial();
+            Geometry cylinder = (Geometry) node.getChild(0);
+            cylinder.setLocalScale(cylinder.getLocalScale().mult(0.8f));
+        }
     }
 
     public void resetRaquette(RigidBodyControl raquette) {
-        Node node = (Node) raquette.getSpatial();
-        Geometry cylinder = (Geometry) node.getChild(0);
-        cylinder.setLocalScale(1f, 1f, 1f);
+        if (whichEnnemy == 0){
+            Geometry geom = (Geometry) raquette.getSpatial();
+            geom.setLocalScale(new Vector3f(1f, 1f, 1f));
+        } else {
+            Node node = (Node) raquette.getSpatial();
+            Geometry cylinder = (Geometry) node.getChild(0);
+            cylinder.setLocalScale(new Vector3f(1f, 1f, 1f));
+        }
     }
 
     public void resetPalet(RigidBodyControl palet){
