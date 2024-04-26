@@ -1,5 +1,11 @@
 package fr.utln.airhockey;
 
+import com.atr.jme.font.TrueTypeBMP;
+import com.atr.jme.font.TrueTypeFont;
+import com.atr.jme.font.asset.TrueTypeKeyBMP;
+import com.atr.jme.font.asset.TrueTypeLoader;
+import com.atr.jme.font.shape.TrueTypeNode;
+import com.atr.jme.font.util.Style;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
@@ -11,6 +17,8 @@ import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.math.*;
+import com.jme3.renderer.Camera;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
@@ -24,9 +32,15 @@ import de.lessvoid.nifty.elements.render.TextRenderer;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Random;
+
+import static java.lang.Math.*;
 
 public class Main extends SimpleApplication implements ActionListener {
+
 public static void main(String[] args) {
         AppSettings settings = new AppSettings(true);
         settings.setUseJoysticks(true);
@@ -43,10 +57,51 @@ public static void main(String[] args) {
     @Setter
     private Boolean isStarted = false;
 
+    @Getter
+    @Setter
+    private int mode = 0;
+
+    /** Movement of the camera */
+    private final float duration = 2f;// Duration of the movement of the camera
+    private Node camNode = new Node("camNode");
+    private Vector3f startLocation;
+    private Vector3f targetLocation;
+    private Vector3f startLookAt;
+    private Vector3f targetLookAt;
+    private long startTime;
+    private Quaternion startRotation;
+    private Quaternion targetRotation;
+    private boolean camIsMoving = false;
+
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
+
     private RigidBodyControl player;
+    private RigidBodyControl ai;
     private RigidBodyControl palet;
+    private int whichEnnemy = 1;
+    private int ennemy;
+
+
+    /** Variables for the bonus */
+    private final List<GhostControl> sphereGhostControls = new ArrayList<>();
+    private final List<Geometry> sphereGeoms = new ArrayList<>();
+    private int bonuses = 0;
+    private float bonusTimer = 0.0f;
+
+    /** Variables for taking a bonus */
+    private float growTimerp = 0.0f;
+    private boolean growp = false;
+    private float shrinkTimerp = 0.0f;
+    private boolean shrinkp = false;
+    private float speedTimer = 0.0f;
+    private boolean speed = false;
+    private float growTimerr = 0.0f;
+    private boolean growr = false;
+    private float shrinkTimerr = 0.0f;
+    private boolean shrinkr = false;
+    private RigidBodyControl lastPlayerTouched = null;
+    private RigidBodyControl playertouched = null;
 
     private boolean click = false;
     private final Vector2f lastCursorPosition = new Vector2f();
@@ -88,33 +143,30 @@ public static void main(String[] args) {
         flyCam.setEnabled(false);
         flyCam.setMoveSpeed(45);
 
-        bulletAppState.setDebugEnabled(true); // For prod only
-        /*
+        if (mode == 1) {
+            // Create two cam to render the scene
+            Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
+            Camera cam2 = new Camera(settings.getWidth(), settings.getHeight());
 
-        // Create two cam to render the scene
-        Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
-        Camera cam2 = new Camera(settings.getWidth(), settings.getHeight());
+            // Create two viewports
+            ViewPort viewPort1 = renderManager.createMainView("Left View", cam1);
+            viewPort1.setClearFlags(true, true, true);
+            viewPort1.attachScene(rootNode);
 
-        // Create two viewports
-        ViewPort viewPort1 = renderManager.createMainView("Left View", cam1);
-        viewPort1.setClearFlags(true, true, true);
-        viewPort1.attachScene(rootNode);
+            ViewPort viewPort2 = renderManager.createMainView("Right View", cam2);
+            viewPort2.setClearFlags(true, true, true);
+            viewPort2.attachScene(rootNode);
 
-        ViewPort viewPort2 = renderManager.createMainView("Right View", cam2);
-        viewPort2.setClearFlags(true, true, true);
-        viewPort2.attachScene(rootNode);
-
-        cam1.setViewPort( 0.0f , 0.5f   ,   0.0f , 1.0f );
-        cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 1.0f );
-        cam1.setLocation(new Vector3f(0, 75f, 0f));
-        cam1.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
-        cam2.setLocation(new Vector3f(0, 75f, 0f));
-        cam2.lookAt(new Vector3f(1, 0, 0), Vector3f.UNIT_Y);
-        cam1.setFrustumPerspective(45f, (float) (cam1.getWidth()/2) / cam1.getHeight(), 0.01f, 1000f);
-        cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
-        cam1.update();
-        cam2.update();*/
-        /*
+            cam1.setViewPort( 0.0f , 0.5f   ,   0.0f , 1.0f );
+            cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 1.0f );
+            cam1.setLocation(new Vector3f(0, 75f, 0f));
+            cam1.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
+            cam2.setLocation(new Vector3f(0, 75f, 0f));
+            cam2.lookAt(new Vector3f(1, 0, 0), Vector3f.UNIT_Y);
+            cam1.setFrustumPerspective(45f, (float) (cam1.getWidth()/2) / cam1.getHeight(), 0.01f, 1000f);
+            cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
+            cam1.update();
+            cam2.update();
         // Create a new font
         assetManager.registerLoader(TrueTypeLoader.class, "ttf");
         TrueTypeKeyBMP ttk = new TrueTypeKeyBMP("Policies/LasEnter.ttf",
@@ -126,15 +178,26 @@ public static void main(String[] args) {
         TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
         trueNode.setLocalTranslation((settings.getWidth()/2)-150, settings.getHeight()-50, 0);
         guiNode.attachChild(trueNode);
-        */
-
+        }
         // Init all the game elements
         initMaterials();
         initWalls();
         initCages();
         initFloor();
         palet = initPalet();
+        palet.setPhysicsLocation(new Vector3f(10,1,0));
         player = initRaquette();
+        player.setPhysicsLocation(new Vector3f(15,1,0));
+        Random random = new Random();
+        ennemy = random.nextInt(2);
+        if (ennemy == 1) {
+            ai = initRaquettePong();
+            ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        }
+        else{
+            ai = initRaquette();
+            ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        }
         // Init the inputs
         listerManettes();
         setUpKeys();
@@ -146,6 +209,31 @@ public static void main(String[] args) {
 
         lastCursorPosition.set(inputManager.getCursorPosition());
 
+    }
+
+    public void initBonus(float x, float z) {
+        // Create a sphere
+        Sphere sphereMesh = new Sphere(32, 32, 1f);
+        Geometry sphereGeom = new Geometry("Bonus Sphere", sphereMesh);
+
+        Material sphereMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        sphereMat.setColor("Color", ColorRGBA.Blue);
+        sphereGeom.setMaterial(sphereMat);
+
+        rootNode.attachChild(sphereGeom);
+
+        // Create a GhostControl with a sphere collision shape
+        GhostControl sphereGhostControl = new GhostControl(new SphereCollisionShape(1f));
+
+        // Add the GhostControl to the sphere
+        sphereGeom.addControl(sphereGhostControl);
+
+        bulletAppState.getPhysicsSpace().add(sphereGhostControl);
+
+        sphereGeom.setLocalTranslation(new Vector3f(x, 1.2f, z));
+
+        sphereGhostControls.add(sphereGhostControl);
+        sphereGeoms.add(sphereGeom);
     }
 
     public void initMaterials() {
@@ -249,6 +337,30 @@ public static void main(String[] args) {
         // Ajouter le nœud composite à la scène
         rootNode.attachChild(compositeNode);
         return box_phy;
+
+    }
+
+    public RigidBodyControl initRaquettePong(){
+
+        Box pong = new Box(1.5f, 1.5f, 3f);
+        Geometry pong_geo = new Geometry("Pong", pong);
+        Material PongMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        PongMat.setColor("Color", ColorRGBA.Blue);
+        pong_geo.setMaterial(wall_mat);
+        pong_geo.rotate(0,0,0.2f);
+
+        RigidBodyControl pong_phy = new RigidBodyControl(100f);
+        /* Add physical brick to physics space. */
+        pong_geo.addControl(pong_phy);
+        bulletAppState.getPhysicsSpace().add(pong_phy);
+        pong_phy.setRestitution(1.0f);
+        pong_phy.setFriction(0f);
+
+        whichEnnemy = 0;
+
+        rootNode.attachChild(pong_geo);
+
+        return pong_phy;
 
     }
 
@@ -449,10 +561,17 @@ public static void main(String[] args) {
         inputManager.addMapping("PS5RightJoystickLeft", new JoyAxisTrigger(0, joyRightStickY, false));
         inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
         inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
+        inputManager.addMapping("R", new KeyTrigger(KeyInput.KEY_R));
+        inputManager.addMapping("1 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD1));
+        inputManager.addMapping("2 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD2));
+        inputManager.addMapping("3 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD3));
+        inputManager.addMapping("4 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD4));
+        inputManager.addMapping("5 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD5));
+        inputManager.addMapping("6 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD6));
 
         inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
-        inputManager.addListener(actionListener, "Escape");
+        inputManager.addListener(actionListener, "Escape", "R", "1 numpad", "2 numpad", "3 numpad", "4 numpad", "5 numpad", "6 numpad");
 
         inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
         // Définir l'écouteur d'action pour le clic gauche
@@ -499,11 +618,53 @@ public static void main(String[] args) {
                     stop();
                 }
             }
+            if (name.equals("R")){
+                resetPositions();
+            }
+            if (name.equals("1 numpad")) {
+                moveCamera(new Vector3f(0, 75f, 0f), new Vector3f(-1, 0, 0));
+            }
+            if (name.equals("2 numpad")) {
+                moveCamera(new Vector3f(0f, 75f, 0f), new Vector3f(1, 0, 0));
+            }
+            if (name.equals("3 numpad")) {
+                moveCamera(new Vector3f(55f, 45f, 0f), new Vector3f(-1, 0, 0));
+            }
+            if (name.equals("4 numpad")) {
+                moveCamera(new Vector3f(-55f, 45f, 0f), new Vector3f(1, 0, 0));
+            }
+            if (name.equals("5 numpad")) {
+                moveCamera(new Vector3f(0f, 45f, -45f), new Vector3f(0, 0, 1));
+            }
+            if (name.equals("6 numpad")) {
+                moveCamera(new Vector3f(0f, 45f, 45f), new Vector3f(0, 0, -1));
+            }
 
             //Fin du clic gauche
             click = name.equals("LeftClick") && isPressed;
         }
     };
+
+    public void moveCamera(Vector3f end, Vector3f endDir) {
+        this.startLocation = cam.getLocation();
+        this.targetLocation = end;
+        this.startLookAt = cam.getDirection();
+        this.targetLookAt = endDir;
+        this.startTime = System.currentTimeMillis();
+        this.startRotation = camNode.getLocalRotation();
+        this.targetRotation = startRotation.clone().mult(new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y)); // 180 degree rotation around Y axis
+        this.camIsMoving = true;
+    }
+
+    public void resetPositions(){
+        player.setPhysicsLocation(new Vector3f(15,1,0));
+        ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        palet.setPhysicsLocation(new Vector3f(10,1,0));
+        player.setLinearVelocity(new Vector3f(0,0,0));
+        ai.setLinearVelocity(new Vector3f(0,0,0));
+        palet.setLinearVelocity(new Vector3f(0,0,0));
+        isGoal = true;
+    }
 
     private final AnalogListener analogListener = new AnalogListener() {
         public void onAnalog(String name, float value, float tpf) {
@@ -554,11 +715,137 @@ public static void main(String[] args) {
     }
 
     @Override
-    public void onAction(String s, boolean b, float v) {
+    public void onAction(String name, boolean isPressed, float tpf) {
+        if (name.equals("LeftClick") && isPressed) {
+            click = true;
+            inputManager.setCursorVisible(false);
+        }
+        //Fin du clic gauche
+        else {
+            click = false;
+            inputManager.setCursorVisible(true);
+        }
+    }
+
+    public void EnnemiComportement() {
+        ai.setAngularVelocity(new Vector3f(0,0,0));
+
+        if (palet.getPhysicsLocation().x > -5) {
+            Vector3f base = new Vector3f(-19f, 0f, 0f);
+            if ((abs(base.x - ai.getPhysicsLocation().x) > 1) || (abs(base.z - ai.getPhysicsLocation().z) > 1)) {
+
+                Vector3f direction = base.subtract(ai.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                // Appliquer le déplacement au joueur
+                ai.setLinearVelocity(direction.mult(30)); // Multiplier par une vitesse de déplacement
+            } else {
+                ai.setLinearVelocity(new Vector3f(0, 0, 0));
+            }
+
+
+        } else if ((palet.getPhysicsLocation().x > ai.getPhysicsLocation().x) && (palet.getPhysicsLocation().x > -17)) {
+            Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+            float distance = direction.length();
+            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            direction = direction.normalize();
+            float speedMultiplier = min(distance / 2, 1.0f);
+            // Appliquer le déplacement au joueur
+            ai.setLinearVelocity(direction.mult(speedMultiplier * 45)); // Multiplier par une vitesse de déplacement
+            if (ai.getPhysicsLocation().x > -5) {
+                Vector3f temp = ai.getLinearVelocity();
+                temp.x = 0;
+                ai.setLinearVelocity(temp);
+            }
+        } else {
+            Vector3f base = new Vector3f(-25f, 0f, 0f);
+            Vector3f paletpos = palet.getPhysicsLocation();
+            float dist = base.distance(paletpos);
+            float rapport = 6.0f / dist;
+
+            Vector3f defense = new Vector3f(base.x + rapport * (paletpos.x - base.x), 0f, base.z + rapport * (paletpos.z - base.z));
+            if ((abs(defense.x - ai.getPhysicsLocation().x) > 1) || (abs(defense.z - ai.getPhysicsLocation().z) > 1)) {
+                Vector3f direction = defense.subtract(ai.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                // Appliquer le déplacement au joueur
+                ai.setLinearVelocity(direction.mult(40)); // Multiplier par une vitesse de déplacement
+            } else {
+                ai.setLinearVelocity(new Vector3f(0, 0, 0));
+            }
+
+        }
+    }
+
+    public void EnnemiComportementPong() {
+        ai.setAngularVelocity(new Vector3f(0,0,0));
+
+        if (palet.getPhysicsLocation().x > ai.getPhysicsLocation().x) {
+            if(abs(palet.getPhysicsLocation().z - ai.getPhysicsLocation().z) > 1.5) {
+                Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                direction.setX(0);
+                float speedMultiplier = min(distance / 2, 1.0f);
+                // Appliquer le déplacement au joueur
+                ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
+            }
+            else{
+                ai.setLinearVelocity(new Vector3f(0,0,0));
+            }
+        }
+        else{
+            Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+            float distance = direction.length();
+            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            direction = direction.normalize();
+            direction.setX(0);
+            float speedMultiplier = min(distance / 2, 1.0f);
+            // Appliquer le déplacement au joueur
+            ai.setLinearVelocity(direction.mult(-speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
+        }
+
     }
 
     public void simpleUpdate(float tpf) {
         if(!isPaused) {
+            palet.setAngularVelocity(new Vector3f(0,0,0));
+            palet.setAngularFactor(0);
+            if (ennemy == 0)
+                EnnemiComportement();
+            else
+                EnnemiComportementPong();
+
+            if (camIsMoving) {
+                float elapsedTime = (System.currentTimeMillis() - startTime) / 1000f;
+                float t = elapsedTime / duration; // t increases linearly with time
+
+                Vector3f location = new Vector3f(
+                        FastMath.interpolateLinear(t, startLocation.x, targetLocation.x),
+                        FastMath.interpolateLinear(t, startLocation.y, targetLocation.y),
+                        FastMath.interpolateLinear(t, startLocation.z, targetLocation.z)
+                );
+
+                Vector3f currentLookAt = new Vector3f();
+                currentLookAt.interpolateLocal(startLookAt, targetLookAt, t);
+
+                Quaternion currentRotation = new Quaternion();
+                currentRotation.slerp(startRotation, targetRotation, t);
+
+                camNode.setLocalTranslation(location);
+                camNode.setLocalRotation(currentRotation);
+                cam.lookAt(currentLookAt, Vector3f.UNIT_Y);
+
+                // Update the camera's location
+                cam.setLocation(camNode.getLocalTranslation());
+
+                if (t >= 1) {
+                    camIsMoving = false;
+                }
+            }
             /*
             tpfTime += tpf;
             if (tpfTime >= 1.0f) {
@@ -566,9 +853,127 @@ public static void main(String[] args) {
                 time++;
                 tpfTime = 0.0f;
             }
-            */
+        */
+            if (player.getPhysicsLocation().distance(palet.getPhysicsLocation()) <
+                    4) {
+                // Le joueur 1 a touché le palet
+                lastPlayerTouched = player;
+            } else if (ai.getPhysicsLocation().distance(palet.getPhysicsLocation()) <
+                    4) {
+                // Le joueur 2 a touché le palet
+                lastPlayerTouched = ai;
+            }
+            // If the palet was growed
+            if (growp){
+                if (growTimerp > 10f){
+                    growTimerp = 0.0f;
+                    growp = false;
+                    resetPalet(palet);
+                }
+                else {
+                    growTimerp += tpf;
+                }
+            // If the palet was shrinked
+            } else if (shrinkp) {
+                if (shrinkTimerp > 10f){
+                    shrinkTimerp = 0.0f;
+                    shrinkp = false;
+                    resetPalet(palet);
+                }
+                else {
+                    shrinkTimerp += tpf;
+                }
+            // If the palet was speeded
+            } else if (speed) {
+                if (speedTimer > 10f){
+                    speedTimer = 0.0f;
+                    speed = false;
+                    palet.setLinearVelocity(palet.getLinearVelocity().mult(0.666f));
+                }
+                else {
+                    speedTimer += tpf;
+                }
+            } else if (growr) {
+                if (growTimerr > 20f){
+                    growTimerr = 0.0f;
+                    growr = false;
+                    resetRaquette(playertouched);
+                }
+                else {
+                    growTimerr += tpf;
+                }
+            } else if (shrinkr) {
+                if (shrinkTimerr > 20f){
+                    shrinkTimerr = 0.0f;
+                    shrinkr = false;
+                    resetRaquette(playertouched);
+                }
+                else {
+                    shrinkTimerr += tpf;
+                }
+            }
+            if (bonuses >= 1){
+                for (int i = 0; i < sphereGhostControls.size(); i++) {
+                    GhostControl sphereGhostControl = sphereGhostControls.get(i);
+                    Geometry sphereGeom = sphereGeoms.get(i);
 
-            if(blueScore == 5 || redScore == 5){
+                    if (sphereGhostControl.getOverlappingObjects().contains(palet)) {
+                        // Si le palet a touché la sphère, retirez la sphère de la scène et de l'espace physique
+                        sphereGeom.removeFromParent();
+                        bulletAppState.getPhysicsSpace().remove(sphereGhostControl);
+
+                        // Retirer le GhostControl et la géométrie de la liste
+                        sphereGhostControls.remove(i);
+                        sphereGeoms.remove(i);
+
+                        bonuses -= 1;
+                        Random rand = new Random();
+                        int bonus = rand.nextInt(7);
+                        switch (bonus){
+                            case 1:
+                                // Palet goes 50% faster
+                                palet.setLinearVelocity(palet.getLinearVelocity().mult(1.5f));
+                                speedTimer += tpf;
+                                speed = true;
+                                break;
+                            case 2:
+                                // Palet grows 20%
+                                growPalet(palet);
+                                growTimerp += tpf;
+                                growp = true;
+                                break;
+                            case 3:
+                                // Palet shrinks 20%
+                                shrinkPalet(palet);
+                                shrinkTimerp += tpf;
+                                shrinkp = true;
+                                break;
+                            default:
+                                if (lastPlayerTouched == player) {
+                                    applyBonus(ai, bonus, tpf);
+                                } else if (lastPlayerTouched == ai) {
+                                    applyBonus(player, bonus, tpf);
+                                }
+                        }
+                    }
+                }
+            }
+            if (bonusTimer > 10f) {
+                Random rand = new Random();
+                float x = rand.nextFloat() * (15 - (-15)) + (-15);
+                float z = rand.nextFloat() * (12 - (-12)) + (-12);
+                while (isBonusAtCoordinates(x, 1.2f, z)){
+                    x = rand.nextFloat() * (15 - (-15)) + (-15);
+                    z = rand.nextFloat() * (12 - (-12)) + (-12);
+                }
+                initBonus(x, z);
+                bonuses += 1;
+                bonusTimer = 0.0f;
+            }
+            else {
+                bonusTimer += tpf;
+            }
+            if(blueScore == 12 || redScore == 12){
                 isPaused = true;
                 isStarted = false;
                 nifty.gotoScreen("end");
@@ -578,7 +983,7 @@ public static void main(String[] args) {
                 if(isGoal){
                     // Reset the palet and the player
                     palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
-                    palet.setPhysicsLocation(new Vector3f(0, 2, 0));
+                    palet.setPhysicsLocation(new Vector3f(10,1,0));
                     player.setPhysicsLocation(new Vector3f(15, 5, 0));
                     player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
                     // Increment the blue score
@@ -594,7 +999,7 @@ public static void main(String[] args) {
                 if(isGoal){
                     // Reset the palet and the player
                     palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
-                    palet.setPhysicsLocation(new Vector3f(0, 2, 0));
+                    palet.setPhysicsLocation(new Vector3f(10,1,0));
                     player.setPhysicsLocation(new Vector3f(15, 5, 0));
                     player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
                     // Increment the red score
@@ -617,7 +1022,7 @@ public static void main(String[] args) {
             rotatePalet = palet.getAngularVelocity();
             palet.setAngularVelocity(new Vector3f(rotatePalet.x, 0f, 0f));
             bloquePalet = palet.getLinearVelocity();
-            palet.setLinearVelocity(new Vector3f(bloquePalet.x, 0f, bloquePalet.z));
+            palet.setLinearVelocity(new Vector3f(bloquePalet.x, -1, bloquePalet.z));
 
             // Mettre à jour le score et le temps
             Element blueScoreText = Objects.requireNonNull(nifty.getScreen("hud")).findElementById("blueScoreText");
@@ -630,6 +1035,8 @@ public static void main(String[] args) {
 
 
             if (click) {
+
+                inputManager.setCursorVisible(false);
 
                 // Reset results list.
                 CollisionResults results = new CollisionResults();
@@ -646,10 +1053,11 @@ public static void main(String[] args) {
                     if (Objects.equals(results.getCollision(i).getGeometry().getName(), "Floor")) {
 
                         Vector3f posSouris = results.getCollision(i).getContactPoint();
+                        posSouris.setX(max(posSouris.x,8));
                         Vector3f posPalet = player.getPhysicsLocation();
 
                         // Pour eviter que la raquette ai Parkinson
-                        if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
+                        if ((abs(posSouris.x - posPalet.x) > 0.1) || (abs(posSouris.z - posPalet.z) > 0.1)) {
                             Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
                             float distance = direction.length();
                             // Normaliser le vecteur de déplacement pour avoir une direction unitaire
@@ -672,10 +1080,100 @@ public static void main(String[] args) {
                     }
                 }
             }
+            else {
+                inputManager.setCursorVisible(true);
+            }
         }else{
             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
             palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
         }
+    }
+
+    public void applyBonus(RigidBodyControl player, int bonus, float tpf) {
+        playertouched = player;
+        switch (bonus) {
+            case 4 :
+                // Palet goes to the adversary cage
+                Vector3f cagePosition = red_cage.getPhysicsLocation(); // Change this to the position of the cage
+                Vector3f paletPosition = palet.getPhysicsLocation();
+                Vector3f directionToCage = cagePosition.subtract(paletPosition).normalizeLocal();
+                float currentSpeed = palet.getLinearVelocity().length();
+                Vector3f newVelocity = directionToCage.mult(currentSpeed*1.5f);
+                palet.setLinearVelocity(newVelocity);
+                break;
+            case 5 :
+                // Adversary raquette grows 20%
+                growRaquette(player);
+                growr = true;
+                growTimerr += tpf;
+                break;
+            case 6 :
+                // Adversary raquette shrinks 20%
+                shrinkRaquette(player);
+                shrinkr = true;
+                shrinkTimerr += tpf;
+                break;
+        }
+    }
+
+    public boolean isBonusAtCoordinates(float x, float y, float z) {
+        for (Geometry sphereGeom : sphereGeoms) {
+            if (sphereGeom.getLocalTranslation().x == x && sphereGeom.getLocalTranslation().y == y && sphereGeom.getLocalTranslation().z == z) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void growPalet(RigidBodyControl palet){
+        Geometry geom = (Geometry) palet.getSpatial();
+        Vector3f scale = geom.getLocalScale();
+        geom.setLocalScale(scale.mult(1.2f));
+    }
+
+    public void shrinkPalet(RigidBodyControl palet){
+        Geometry geom = (Geometry) palet.getSpatial();
+        Vector3f scale = geom.getLocalScale();
+        geom.setLocalScale(scale.mult(0.8f));
+    }
+
+    public void growRaquette(RigidBodyControl raquette) {
+        if (whichEnnemy == 0){
+            Geometry geom = (Geometry) raquette.getSpatial();
+            geom.setLocalScale(geom.getLocalScale().mult(1.2f));
+        } else {
+            Node node = (Node) raquette.getSpatial();
+            Geometry cylinder = (Geometry) node.getChild(0);
+            cylinder.setLocalScale(cylinder.getLocalScale().mult(1.2f));
+        }
+
+    }
+
+    public void shrinkRaquette(RigidBodyControl raquette) {
+        if (whichEnnemy == 0){
+            Geometry geom = (Geometry) raquette.getSpatial();
+            geom.setLocalScale(geom.getLocalScale().mult(0.8f));
+        } else {
+            Node node = (Node) raquette.getSpatial();
+            Geometry cylinder = (Geometry) node.getChild(0);
+            cylinder.setLocalScale(cylinder.getLocalScale().mult(0.8f));
+        }
+    }
+
+    public void resetRaquette(RigidBodyControl raquette) {
+        if (whichEnnemy == 0){
+            Geometry geom = (Geometry) raquette.getSpatial();
+            geom.setLocalScale(new Vector3f(1f, 1f, 1f));
+        } else {
+            Node node = (Node) raquette.getSpatial();
+            Geometry cylinder = (Geometry) node.getChild(0);
+            cylinder.setLocalScale(new Vector3f(1f, 1f, 1f));
+        }
+    }
+
+    public void resetPalet(RigidBodyControl palet){
+        Geometry geom = (Geometry) palet.getSpatial();
+        geom.setLocalScale(1f, 1f, 1f);
     }
 
     @SuppressWarnings("unused")
