@@ -131,7 +131,6 @@ public static void main(String[] args) {
         flyCam.setEnabled(false);
         flyCam.setMoveSpeed(45);
 
-        bulletAppState.setDebugEnabled(true); // For prod only
         if (mode == 1) {
             // Create two cam to render the scene
             Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
