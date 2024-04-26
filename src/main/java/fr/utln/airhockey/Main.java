@@ -69,6 +69,8 @@ public static void main(String[] args) {
     private boolean growr = false;
     private float shrinkTimerr = 0.0f;
     private boolean shrinkr = false;
+    private RigidBodyControl lastPlayerTouched = null;
+    private RigidBodyControl playertouched = null;
 
     private boolean click = false;
     private final Vector2f lastCursorPosition = new Vector2f();
@@ -616,6 +618,15 @@ public static void main(String[] args) {
                 tpfTime = 0.0f;
             }
             */
+            if (player.getPhysicsLocation().distance(palet.getPhysicsLocation()) <
+                    4) {
+                // Le joueur 1 a touché le palet
+                lastPlayerTouched = player;
+            } else if (player2.getPhysicsLocation().distance(palet.getPhysicsLocation()) <
+                    4) {
+                // Le joueur 2 a touché le palet
+                lastPlayerTouched = player2;
+            }
             // If the palet was growed
             if (growp){
                 if (growTimerp > 10f){
@@ -650,7 +661,7 @@ public static void main(String[] args) {
                 if (growTimerr > 20f){
                     growTimerr = 0.0f;
                     growr = false;
-                    resetRaquette(player2);
+                    resetRaquette(playertouched);
                 }
                 else {
                     growTimerr += tpf;
@@ -659,7 +670,7 @@ public static void main(String[] args) {
                 if (shrinkTimerr > 20f){
                     shrinkTimerr = 0.0f;
                     shrinkr = false;
-                    resetRaquette(player2);
+                    resetRaquette(playertouched);
                 }
                 else {
                     shrinkTimerr += tpf;
@@ -701,27 +712,12 @@ public static void main(String[] args) {
                                 shrinkTimerp += tpf;
                                 shrinkp = true;
                                 break;
-                            case 4:
-                                // Palet goes to the adversary cage
-                                Vector3f cagePosition = red_cage.getPhysicsLocation(); // Change this to the position of the cage
-                                Vector3f paletPosition = palet.getPhysicsLocation();
-                                Vector3f directionToCage = cagePosition.subtract(paletPosition).normalizeLocal();
-                                float currentSpeed = palet.getLinearVelocity().length();
-                                Vector3f newVelocity = directionToCage.mult(currentSpeed*1.5f);
-                                palet.setLinearVelocity(newVelocity);
-                                break;
-                            case 5:
-                                // Adversary raquette grows 20%
-                                growRaquette(player2);
-                                growTimerr += tpf;
-                                growr = true;
-                                break;
-                            case 6:
-                                // Adversary raquette shrinks 20%
-                                shrinkRaquette(player2);
-                                shrinkTimerr += tpf;
-                                shrinkr = true;
-                                break;
+                            default:
+                                if (lastPlayerTouched == player) {
+                                    applyBonus(player2, bonus, tpf);
+                                } else if (lastPlayerTouched == player2) {
+                                    applyBonus(player, bonus, tpf);
+                                }
                         }
                     }
                 }
@@ -848,6 +844,33 @@ public static void main(String[] args) {
         }else{
             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
             palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+        }
+    }
+
+    public void applyBonus(RigidBodyControl player, int bonus, float tpf) {
+        playertouched = player;
+        switch (bonus) {
+            case 4 :
+                // Palet goes to the adversary cage
+                Vector3f cagePosition = red_cage.getPhysicsLocation(); // Change this to the position of the cage
+                Vector3f paletPosition = palet.getPhysicsLocation();
+                Vector3f directionToCage = cagePosition.subtract(paletPosition).normalizeLocal();
+                float currentSpeed = palet.getLinearVelocity().length();
+                Vector3f newVelocity = directionToCage.mult(currentSpeed*1.5f);
+                palet.setLinearVelocity(newVelocity);
+                break;
+            case 5 :
+                // Adversary raquette grows 20%
+                growRaquette(player);
+                growr = true;
+                growTimerr += tpf;
+                break;
+            case 6 :
+                // Adversary raquette shrinks 20%
+                shrinkRaquette(player);
+                shrinkr = true;
+                shrinkTimerr += tpf;
+                break;
         }
     }
 
