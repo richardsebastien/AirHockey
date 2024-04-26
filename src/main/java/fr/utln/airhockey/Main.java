@@ -1,5 +1,11 @@
 package fr.utln.airhockey;
 
+import com.atr.jme.font.TrueTypeBMP;
+import com.atr.jme.font.TrueTypeFont;
+import com.atr.jme.font.asset.TrueTypeKeyBMP;
+import com.atr.jme.font.asset.TrueTypeLoader;
+import com.atr.jme.font.shape.TrueTypeNode;
+import com.atr.jme.font.util.Style;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.TextureKey;
 import com.jme3.bullet.collision.shapes.*;
@@ -11,6 +17,8 @@ import com.jme3.input.*;
 import com.jme3.input.controls.*;
 import com.jme3.material.Material;
 import com.jme3.math.*;
+import com.jme3.renderer.Camera;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
@@ -29,10 +37,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
+import static java.lang.Math.*;
 
 public class Main extends SimpleApplication implements ActionListener {
+
 public static void main(String[] args) {
         AppSettings settings = new AppSettings(true);
         settings.setUseJoysticks(true);
@@ -49,6 +57,10 @@ public static void main(String[] args) {
     @Setter
     private Boolean isStarted = false;
 
+    @Getter
+    @Setter
+    private int mode = 0;
+
     /** Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
 
@@ -56,6 +68,8 @@ public static void main(String[] args) {
     private RigidBodyControl ai;
     private RigidBodyControl palet;
     private int whichEnnemy = 1;
+    private int ennemy;
+
 
     /** Variables for the bonus */
     private final List<GhostControl> sphereGhostControls = new ArrayList<>();
@@ -118,32 +132,30 @@ public static void main(String[] args) {
         flyCam.setMoveSpeed(45);
 
         bulletAppState.setDebugEnabled(true); // For prod only
-        /*
+        if (mode == 1) {
+            // Create two cam to render the scene
+            Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
+            Camera cam2 = new Camera(settings.getWidth(), settings.getHeight());
 
-        // Create two cam to render the scene
-        Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
-        Camera cam2 = new Camera(settings.getWidth(), settings.getHeight());
+            // Create two viewports
+            ViewPort viewPort1 = renderManager.createMainView("Left View", cam1);
+            viewPort1.setClearFlags(true, true, true);
+            viewPort1.attachScene(rootNode);
 
-        // Create two viewports
-        ViewPort viewPort1 = renderManager.createMainView("Left View", cam1);
-        viewPort1.setClearFlags(true, true, true);
-        viewPort1.attachScene(rootNode);
+            ViewPort viewPort2 = renderManager.createMainView("Right View", cam2);
+            viewPort2.setClearFlags(true, true, true);
+            viewPort2.attachScene(rootNode);
 
-        ViewPort viewPort2 = renderManager.createMainView("Right View", cam2);
-        viewPort2.setClearFlags(true, true, true);
-        viewPort2.attachScene(rootNode);
-
-        cam1.setViewPort( 0.0f , 0.5f   ,   0.0f , 1.0f );
-        cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 1.0f );
-        cam1.setLocation(new Vector3f(0, 75f, 0f));
-        cam1.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
-        cam2.setLocation(new Vector3f(0, 75f, 0f));
-        cam2.lookAt(new Vector3f(1, 0, 0), Vector3f.UNIT_Y);
-        cam1.setFrustumPerspective(45f, (float) (cam1.getWidth()/2) / cam1.getHeight(), 0.01f, 1000f);
-        cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
-        cam1.update();
-        cam2.update();*/
-        /*
+            cam1.setViewPort( 0.0f , 0.5f   ,   0.0f , 1.0f );
+            cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 1.0f );
+            cam1.setLocation(new Vector3f(0, 75f, 0f));
+            cam1.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
+            cam2.setLocation(new Vector3f(0, 75f, 0f));
+            cam2.lookAt(new Vector3f(1, 0, 0), Vector3f.UNIT_Y);
+            cam1.setFrustumPerspective(45f, (float) (cam1.getWidth()/2) / cam1.getHeight(), 0.01f, 1000f);
+            cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
+            cam1.update();
+            cam2.update();
         // Create a new font
         assetManager.registerLoader(TrueTypeLoader.class, "ttf");
         TrueTypeKeyBMP ttk = new TrueTypeKeyBMP("Policies/LasEnter.ttf",
@@ -155,8 +167,7 @@ public static void main(String[] args) {
         TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
         trueNode.setLocalTranslation((settings.getWidth()/2)-150, settings.getHeight()-50, 0);
         guiNode.attachChild(trueNode);
-        */
-
+        }
         // Init all the game elements
         initMaterials();
         initWalls();
@@ -166,8 +177,16 @@ public static void main(String[] args) {
         palet.setPhysicsLocation(new Vector3f(10,1,0));
         player = initRaquette();
         player.setPhysicsLocation(new Vector3f(15,1,0));
-        ai = initRaquettePong();
-        ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        Random random = new Random();
+        ennemy = random.nextInt(2);
+        if (ennemy == 1) {
+            ai = initRaquettePong();
+            ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        }
+        else{
+            ai = initRaquette();
+            ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        }
         // Init the inputs
         listerManettes();
         setUpKeys();
@@ -531,10 +550,17 @@ public static void main(String[] args) {
         inputManager.addMapping("PS5RightJoystickLeft", new JoyAxisTrigger(0, joyRightStickY, false));
         inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
         inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
+        inputManager.addMapping("R", new KeyTrigger(KeyInput.KEY_R));
+        inputManager.addMapping("1 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD1));
+        inputManager.addMapping("2 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD2));
+        inputManager.addMapping("3 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD3));
+        inputManager.addMapping("4 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD4));
+        inputManager.addMapping("5 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD5));
+        inputManager.addMapping("6 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD6));
 
         inputManager.addListener(analogListener, "PS5LeftJoystickLeftBottom", "PS5LeftJoystickRight", "PS5RightJoystickRightBottom", "PS5ButtonL2", "PS5ButtonR2", "PS5RightJoystickLeft");
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
-        inputManager.addListener(actionListener, "Escape");
+        inputManager.addListener(actionListener, "Escape", "R");
 
         inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
         // Définir l'écouteur d'action pour le clic gauche
@@ -581,11 +607,24 @@ public static void main(String[] args) {
                     stop();
                 }
             }
+            if (name.equals("R")){
+                resetPositions();
+            }
 
             //Fin du clic gauche
             click = name.equals("LeftClick") && isPressed;
         }
     };
+
+    public void resetPositions(){
+        player.setPhysicsLocation(new Vector3f(15,1,0));
+        ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
+        palet.setPhysicsLocation(new Vector3f(10,1,0));
+        player.setLinearVelocity(new Vector3f(0,0,0));
+        ai.setLinearVelocity(new Vector3f(0,0,0));
+        palet.setLinearVelocity(new Vector3f(0,0,0));
+        isGoal = true;
+    }
 
     private final AnalogListener analogListener = new AnalogListener() {
         public void onAnalog(String name, float value, float tpf) {
@@ -653,7 +692,7 @@ public static void main(String[] args) {
 
         if (palet.getPhysicsLocation().x > -5) {
             Vector3f base = new Vector3f(-19f, 0f, 0f);
-            if ((Math.abs(base.x - ai.getPhysicsLocation().x) > 1) || (Math.abs(base.z - ai.getPhysicsLocation().z) > 1)) {
+            if ((abs(base.x - ai.getPhysicsLocation().x) > 1) || (abs(base.z - ai.getPhysicsLocation().z) > 1)) {
 
                 Vector3f direction = base.subtract(ai.getPhysicsLocation());
                 float distance = direction.length();
@@ -673,7 +712,7 @@ public static void main(String[] args) {
             direction = direction.normalize();
             float speedMultiplier = min(distance / 2, 1.0f);
             // Appliquer le déplacement au joueur
-            ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
+            ai.setLinearVelocity(direction.mult(speedMultiplier * 45)); // Multiplier par une vitesse de déplacement
             if (ai.getPhysicsLocation().x > -5) {
                 Vector3f temp = ai.getLinearVelocity();
                 temp.x = 0;
@@ -686,7 +725,7 @@ public static void main(String[] args) {
             float rapport = 6.0f / dist;
 
             Vector3f defense = new Vector3f(base.x + rapport * (paletpos.x - base.x), 0f, base.z + rapport * (paletpos.z - base.z));
-            if ((Math.abs(defense.x - ai.getPhysicsLocation().x) > 1) || (Math.abs(defense.z - ai.getPhysicsLocation().z) > 1)) {
+            if ((abs(defense.x - ai.getPhysicsLocation().x) > 1) || (abs(defense.z - ai.getPhysicsLocation().z) > 1)) {
                 Vector3f direction = defense.subtract(ai.getPhysicsLocation());
                 float distance = direction.length();
                 // Normaliser le vecteur de déplacement pour avoir une direction unitaire
@@ -704,14 +743,19 @@ public static void main(String[] args) {
         ai.setAngularVelocity(new Vector3f(0,0,0));
 
         if (palet.getPhysicsLocation().x > ai.getPhysicsLocation().x) {
-            Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
-            float distance = direction.length();
-            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
-            direction = direction.normalize();
-            direction.setX(0);
-            float speedMultiplier = min(distance / 2, 1.0f);
-            // Appliquer le déplacement au joueur
-            ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
+            if(abs(palet.getPhysicsLocation().z - ai.getPhysicsLocation().z) > 1.5) {
+                Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
+                float distance = direction.length();
+                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                direction = direction.normalize();
+                direction.setX(0);
+                float speedMultiplier = min(distance / 2, 1.0f);
+                // Appliquer le déplacement au joueur
+                ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
+            }
+            else{
+                ai.setLinearVelocity(new Vector3f(0,0,0));
+            }
         }
         else{
             Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
@@ -727,7 +771,14 @@ public static void main(String[] args) {
     }
 
     public void simpleUpdate(float tpf) {
+
         if(!isPaused) {
+            palet.setAngularVelocity(new Vector3f(0,0,0));
+            palet.setAngularFactor(0);
+            if (ennemy == 0)
+                EnnemiComportement();
+            else
+                EnnemiComportementPong();
             /*
             tpfTime += tpf;
             if (tpfTime >= 1.0f) {
@@ -735,10 +786,7 @@ public static void main(String[] args) {
                 time++;
                 tpfTime = 0.0f;
             }
-            */
-
-            EnnemiComportementPong();
-
+        */
             if (player.getPhysicsLocation().distance(palet.getPhysicsLocation()) <
                     4) {
                 // Le joueur 1 a touché le palet
@@ -858,7 +906,7 @@ public static void main(String[] args) {
             else {
                 bonusTimer += tpf;
             }
-            if(blueScore == 5 || redScore == 5){
+            if(blueScore == 12 || redScore == 12){
                 isPaused = true;
                 isStarted = false;
                 nifty.gotoScreen("end");
@@ -868,7 +916,7 @@ public static void main(String[] args) {
                 if(isGoal){
                     // Reset the palet and the player
                     palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
-                    palet.setPhysicsLocation(new Vector3f(0, 2, 0));
+                    palet.setPhysicsLocation(new Vector3f(10,1,0));
                     player.setPhysicsLocation(new Vector3f(15, 5, 0));
                     player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
                     // Increment the blue score
@@ -884,7 +932,7 @@ public static void main(String[] args) {
                 if(isGoal){
                     // Reset the palet and the player
                     palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
-                    palet.setPhysicsLocation(new Vector3f(0, 2, 0));
+                    palet.setPhysicsLocation(new Vector3f(10,1,0));
                     player.setPhysicsLocation(new Vector3f(15, 5, 0));
                     player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
                     // Increment the red score
@@ -942,7 +990,7 @@ public static void main(String[] args) {
                         Vector3f posPalet = player.getPhysicsLocation();
 
                         // Pour eviter que la raquette ai Parkinson
-                        if ((Math.abs(posSouris.x - posPalet.x) > 0.1) || (Math.abs(posSouris.z - posPalet.z) > 0.1)) {
+                        if ((abs(posSouris.x - posPalet.x) > 0.1) || (abs(posSouris.z - posPalet.z) > 0.1)) {
                             Vector3f direction = results.getCollision(i).getContactPoint().subtract(player.getPhysicsLocation());
                             float distance = direction.length();
                             // Normaliser le vecteur de déplacement pour avoir une direction unitaire

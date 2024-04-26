@@ -95,7 +95,10 @@ public class StartScreenState extends BaseAppState implements ScreenController {
     }
 
     public void startGame1vs1() {
-        // Add code to start game
+        app.setMode(1);
+        app.setIsStarted(true);
+        app.setIsPaused(false);
+        nifty.gotoScreen("hud");
     }
 
     public void startGameNetwork() {
