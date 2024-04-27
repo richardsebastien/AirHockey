@@ -1,6 +1,5 @@
 package fr.utln.airhockey;
 
-import com.atr.jme.font.TrueTypeBMP;
 import com.atr.jme.font.TrueTypeFont;
 import com.atr.jme.font.asset.TrueTypeKeyBMP;
 import com.atr.jme.font.asset.TrueTypeLoader;
@@ -32,16 +31,13 @@ import de.lessvoid.nifty.elements.render.TextRenderer;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 
 import static java.lang.Math.*;
 
 public class Main extends SimpleApplication implements ActionListener {
 
-public static void main(String[] args) {
+    public static void main(String[] args) {
         AppSettings settings = new AppSettings(true);
         settings.setUseJoysticks(true);
         Main app = new Main();
@@ -61,9 +57,8 @@ public static void main(String[] args) {
     @Setter
     private int mode = 0;
 
-    /** Movement of the camera */
-    private final float duration = 2f;// Duration of the movement of the camera
-    private Node camNode = new Node("camNode");
+    /* Movement of the camera */
+    private final Node camNode = new Node("camNode");
     private Vector3f startLocation;
     private Vector3f targetLocation;
     private Vector3f startLookAt;
@@ -73,52 +68,53 @@ public static void main(String[] args) {
     private Quaternion targetRotation;
     private boolean camIsMoving = false;
 
-    /** Prepare the Physics Application State (jBullet) */
+    /* Prepare the Physics Application State (jBullet) */
     private BulletAppState bulletAppState;
 
+    /* Declarations for the players */
     private RigidBodyControl player;
     private RigidBodyControl ai;
     private RigidBodyControl palet;
-    private int whichEnnemy = 1;
-    private int ennemy;
+    private int whichEnemy = 1;
+    private int enemy;
 
 
-    /** Variables for the bonus */
+    /* Variables for the bonus */
     private final List<GhostControl> sphereGhostControls = new ArrayList<>();
     private final List<Geometry> sphereGeoms = new ArrayList<>();
     private int bonuses = 0;
     private float bonusTimer = 0.0f;
 
-    /** Variables for taking a bonus */
-    private float growTimerp = 0.0f;
-    private boolean growp = false;
-    private float shrinkTimerp = 0.0f;
-    private boolean shrinkp = false;
+    /* Variables for taking a bonus */
+    private float growTimerP = 0.0f;
+    private boolean growP = false;
+    private float shrinkTimerP = 0.0f;
+    private boolean shrinkP = false;
     private float speedTimer = 0.0f;
     private boolean speed = false;
-    private float growTimerr = 0.0f;
-    private boolean growr = false;
-    private float shrinkTimerr = 0.0f;
-    private boolean shrinkr = false;
+    private float growTimerR = 0.0f;
+    private boolean growR = false;
+    private float shrinkTimerR = 0.0f;
+    private boolean shrinkR = false;
     private RigidBodyControl lastPlayerTouched = null;
-    private RigidBodyControl playertouched = null;
+    private RigidBodyControl playerTouched = null;
 
     private boolean click = false;
     private final Vector2f lastCursorPosition = new Vector2f();
 
-    /** Prepare the cages */
+    /* Prepare the cages */
     private GhostControl red_cage;
     private GhostControl blue_cage;
 
-    /** Prepare Materials */
+    /* Prepare Materials */
     private Material wall_mat;
     private Material red_cage_mat;
     private Material blue_cage_mat;
     private Material floor_mat;
-    /** Prepare geometries for bricks and cannonballs. */
+    /* Prepare geometries for bricks and cannonballs. */
     private static final Box floor;
 
-    /** Prepare all variables for scoring and timer */
+    /* Prepare all variables for scoring and timer */
     private int redScore= 0;
     private int blueScore = 0;
     private int time = 0;
@@ -132,7 +128,7 @@ public static void main(String[] args) {
 
     @Override
     public void simpleInitApp() {
-
+        /* Initial screen */
         StartScreenState startScreenState = new StartScreenState();
         startScreenState.setApp(this);
         stateManager.attach(startScreenState);
@@ -143,6 +139,7 @@ public static void main(String[] args) {
         flyCam.setEnabled(false);
         flyCam.setMoveSpeed(45);
 
+        /* For mode 1v1 (not working) */
         if (mode == 1) {
             // Create two cam to render the scene
             Camera cam1 = new Camera(settings.getWidth(), settings.getHeight());
@@ -167,17 +164,17 @@ public static void main(String[] args) {
             cam2.setFrustumPerspective(45f, (float) (cam2.getWidth()/2) / cam2.getHeight(), 0.01f, 1000f);
             cam1.update();
             cam2.update();
-        // Create a new font
-        assetManager.registerLoader(TrueTypeLoader.class, "ttf");
-        TrueTypeKeyBMP ttk = new TrueTypeKeyBMP("Policies/LasEnter.ttf",
-                Style.Plain, 72);
-        TrueTypeFont ttf = (TrueTypeBMP)assetManager.loadAsset(ttk);
-        ttf.setScale(16/21f);
+            // Create a new font
+            assetManager.registerLoader(TrueTypeLoader.class, "ttf");
+            TrueTypeKeyBMP ttk = new TrueTypeKeyBMP("Policies/LasEnter.ttf",
+                    Style.Plain, 72);
+            TrueTypeFont ttf = assetManager.loadAsset(ttk);
+            ttf.setScale(16/21f);
 
-        // Create a new text geometry
-        TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
-        trueNode.setLocalTranslation((settings.getWidth()/2)-150, settings.getHeight()-50, 0);
-        guiNode.attachChild(trueNode);
+            // Create a new text geometry
+            TrueTypeNode trueNode = ttf.getText("Hello World", 0, ColorRGBA.White);
+            trueNode.setLocalTranslation(((float) settings.getWidth() /2)-150, settings.getHeight()-50, 0);
+            guiNode.attachChild(trueNode);
         }
         // Init all the game elements
         initMaterials();
@@ -188,9 +185,10 @@ public static void main(String[] args) {
         palet.setPhysicsLocation(new Vector3f(10,1,0));
         player = initRaquette();
         player.setPhysicsLocation(new Vector3f(15,1,0));
+        /* Choose randomly the enemy */
         Random random = new Random();
-        ennemy = random.nextInt(2);
-        if (ennemy == 1) {
+        enemy = random.nextInt(2);
+        if (enemy == 1) {
             ai = initRaquettePong();
             ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
         }
@@ -205,12 +203,16 @@ public static void main(String[] args) {
         /* Configure cam to look at scene (no flying cam) */
         cam.setLocation(new Vector3f(0, 75f, 0f));
         cam.lookAt(new Vector3f(-1, 0, 0), Vector3f.UNIT_Y);
-        CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
 
         lastCursorPosition.set(inputManager.getCursorPosition());
 
     }
 
+    /**
+     * Initialize a bonus at the given position
+     * @param x The x position of the bonus
+     * @param z The z position of the bonus
+     */
     public void initBonus(float x, float z) {
         // Create a sphere
         Sphere sphereMesh = new Sphere(32, 32, 1f);
@@ -236,6 +238,9 @@ public static void main(String[] args) {
         sphereGeoms.add(sphereGeom);
     }
 
+    /**
+     * Initialize the materials used in the game
+     */
     public void initMaterials() {
         wall_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         TextureKey key = new TextureKey("Textures/Terrain/wall.png");
@@ -263,6 +268,10 @@ public static void main(String[] args) {
         floor_mat.setTexture("ColorMap", tex3);
     }
 
+    /**
+     * Initialize the palet
+     * @return The RigidBodyControl of the palet
+     */
     public RigidBodyControl initPalet(){
         float radius = 1.0f; // Rayon du cylindre
         float height = 1f; // Hauteur du cylindre
@@ -291,6 +300,10 @@ public static void main(String[] args) {
         return box_phy;
     }
 
+    /**
+     * Initialize the raquette
+     * @return The RigidBodyControl of the raquette
+     */
     public RigidBodyControl initRaquette(){
 
         float cylinderHeight = 1.5f;
@@ -340,6 +353,10 @@ public static void main(String[] args) {
 
     }
 
+    /**
+     * Initialize the raquette for the Pong mode
+     * @return The RigidBodyControl of the raquette
+     */
     public RigidBodyControl initRaquettePong(){
 
         Box pong = new Box(1.5f, 1.5f, 3f);
@@ -356,7 +373,7 @@ public static void main(String[] args) {
         pong_phy.setRestitution(1.0f);
         pong_phy.setFriction(0f);
 
-        whichEnnemy = 0;
+        whichEnemy = 0;
 
         rootNode.attachChild(pong_geo);
 
@@ -364,8 +381,10 @@ public static void main(String[] args) {
 
     }
 
-    public RigidBodyControl[] initWalls(){
-        RigidBodyControl[] ans = new RigidBodyControl[6];
+    /**
+     * Initialize the walls
+     */
+    public void initWalls(){
         /* Initialization of walls */
         Box wall1 = new Box(31f, 1.5f, 1f);
         Box wall2 = new Box(31f, 1.5f, 1f);
@@ -433,16 +452,11 @@ public static void main(String[] args) {
         wall_phy5.setRestitution(1.0f);
         wall_phy6.setRestitution(1.0f);
 
-        ans[0] = wall_phy1;
-        ans[1] = wall_phy2;
-        ans[2] = wall_phy3;
-        ans[3] = wall_phy4;
-        ans[4] = wall_phy5;
-        ans[5] = wall_phy6;
-
-        return ans;
     }
 
+    /**
+     * Initialize the cages, with invisible boxes to detect the goal
+     */
     public void initCages(){
 
         /* Red cage */
@@ -526,6 +540,9 @@ public static void main(String[] args) {
         blue_cage_top_phy.setRestitution(1.0f);
     }
 
+    /**
+     * Initialize the floor of the game
+     */
     public void initFloor() {
         Geometry floor_geo = new Geometry("Floor", floor);
         floor_geo.setMaterial(floor_mat);
@@ -537,8 +554,11 @@ public static void main(String[] args) {
         bulletAppState.getPhysicsSpace().add(floor_phy);
     }
 
-
+    /**
+     * Initialize all the inputs which can be used for the game
+     */
     private void setUpKeys() {
+        // Inputs for the game with a controller
         int joyCarre = 0;
         inputManager.addMapping("Button_Carré", new JoyButtonTrigger(0, joyCarre));
         int joyTriangle = 3;
@@ -560,8 +580,10 @@ public static void main(String[] args) {
         int joyRightStickY = 5;
         inputManager.addMapping("PS5RightJoystickLeft", new JoyAxisTrigger(0, joyRightStickY, false));
         inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
+        // Input for pause and reset
         inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
         inputManager.addMapping("R", new KeyTrigger(KeyInput.KEY_R));
+        // Inputs for the camera
         inputManager.addMapping("1 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD1));
         inputManager.addMapping("2 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD2));
         inputManager.addMapping("3 numpad", new KeyTrigger(KeyInput.KEY_NUMPAD3));
@@ -573,8 +595,8 @@ public static void main(String[] args) {
         inputManager.addListener(actionListener, "Button_Carré", "Button_Triangle", "Button_Cercle", "Button_Croix");
         inputManager.addListener(actionListener, "Escape", "R", "1 numpad", "2 numpad", "3 numpad", "4 numpad", "5 numpad", "6 numpad");
 
+        // Inputs for the game with a mouse
         inputManager.addMapping("LeftClick", new MouseButtonTrigger(0));
-        // Définir l'écouteur d'action pour le clic gauche
         inputManager.addListener(actionListener, "LeftClick");
 
         inputManager.addJoystickConnectionListener(new JoystickConnectionListener() {
@@ -591,6 +613,9 @@ public static void main(String[] args) {
         inputManager.getJoysticks();
     }
 
+    /**
+     * Reaction to the inputs
+     */
     private final ActionListener actionListener = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("Button_Croix") && isPressed) {
@@ -640,11 +665,40 @@ public static void main(String[] args) {
                 moveCamera(new Vector3f(0f, 45f, 45f), new Vector3f(0, 0, -1));
             }
 
-            //Fin du clic gauche
+            // End of the left click
             click = name.equals("LeftClick") && isPressed;
         }
     };
 
+    /**
+     * Reaction to the analog inputs
+     */
+    private final AnalogListener analogListener = (name, value, tpf) -> {
+        if (name.equals("PS5LeftJoystickLeftBottom")) {
+            System.out.printf("Joystick value: %f\n", value);
+        }
+        if(name.equals("PS5LeftJoystickRight")){
+            System.out.printf("Joystick value: %f\n", value);
+        }
+        if(name.equals("PS5RightJoystickRightBottom")){
+            System.out.printf("Joystick value: %f\n", value);
+        }
+        if(name.equals("PS5ButtonL2")){
+            System.out.printf("Joystick value: %f\n", value);
+        }
+        if(name.equals("PS5ButtonR2")){
+            System.out.printf("Joystick value: %f\n", value);
+        }
+        if(name.equals("PS5RightJoystickLeft")){
+            System.out.printf("Joystick value: %f\n", value);
+        }
+    };
+
+    /**
+     * Define the movement of the camera to move it in simpleUpdate
+     * @param end The end position of the camera
+     * @param endDir The end direction of the camera
+     */
     public void moveCamera(Vector3f end, Vector3f endDir) {
         this.startLocation = cam.getLocation();
         this.targetLocation = end;
@@ -652,10 +706,13 @@ public static void main(String[] args) {
         this.targetLookAt = endDir;
         this.startTime = System.currentTimeMillis();
         this.startRotation = camNode.getLocalRotation();
-        this.targetRotation = startRotation.clone().mult(new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y)); // 180 degree rotation around Y axis
+        this.targetRotation = startRotation.clone().mult(new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y)); // 180-degree rotation around Y axis
         this.camIsMoving = true;
     }
 
+    /**
+     * Reset the positions of the players and the palet
+     */
     public void resetPositions(){
         player.setPhysicsLocation(new Vector3f(15,1,0));
         ai.setPhysicsLocation(new Vector3f(-12f, 2f, -4f));
@@ -666,29 +723,9 @@ public static void main(String[] args) {
         isGoal = true;
     }
 
-    private final AnalogListener analogListener = new AnalogListener() {
-        public void onAnalog(String name, float value, float tpf) {
-            if (name.equals("PS5LeftJoystickLeftBottom")) {
-                System.out.printf("Joystick value: %f\n", value);
-            }
-            if(name.equals("PS5LeftJoystickRight")){
-                System.out.printf("Joystick value: %f\n", value);
-            }
-            if(name.equals("PS5RightJoystickRightBottom")){
-                System.out.printf("Joystick value: %f\n", value);
-            }
-            if(name.equals("PS5ButtonL2")){
-                System.out.printf("Joystick value: %f\n", value);
-            }
-            if(name.equals("PS5ButtonR2")){
-                System.out.printf("Joystick value: %f\n", value);
-            }
-            if(name.equals("PS5RightJoystickLeft")){
-                System.out.printf("Joystick value: %f\n", value);
-            }
-        }
-    };
-
+    /**
+     * List all the joysticks connected to the computer
+     */
     public void listerManettes() {
         Joystick[] joysticks = inputManager.getJoysticks();
 
@@ -699,12 +736,12 @@ public static void main(String[] args) {
                 Joystick joystick = joysticks[i];
                 System.out.println("Manette " + (i + 1) + ": " + joystick.getName());
 
-                // Liste des axes de la manette
+                // List of axes of the controller
                 for (JoystickAxis axis : joystick.getAxes()) {
                     System.out.println("   Axe " + axis.getAxisId() + ": " + axis.getName());
                 }
 
-                // Liste des boutons de la manette
+                // List of buttons of the controller
                 for (JoystickButton button : joystick.getButtons()) {
                     System.out.println("   Bouton " + button.getButtonId() + ": " + button.getName());
                 }
@@ -714,19 +751,28 @@ public static void main(String[] args) {
         }
     }
 
+    /**
+     * Reaction to the action of the mouse
+     * @param name The name of the action
+     * @param isPressed If the action is pressed
+     * @param tpf The time per frame
+     */
     @Override
     public void onAction(String name, boolean isPressed, float tpf) {
         if (name.equals("LeftClick") && isPressed) {
             click = true;
             inputManager.setCursorVisible(false);
         }
-        //Fin du clic gauche
+        // End of the left click
         else {
             click = false;
             inputManager.setCursorVisible(true);
         }
     }
 
+    /**
+     * Define the behavior of the enemy (AI) in the game
+     */
     public void EnnemiComportement() {
         ai.setAngularVelocity(new Vector3f(0,0,0));
 
@@ -735,10 +781,9 @@ public static void main(String[] args) {
             if ((abs(base.x - ai.getPhysicsLocation().x) > 1) || (abs(base.z - ai.getPhysicsLocation().z) > 1)) {
 
                 Vector3f direction = base.subtract(ai.getPhysicsLocation());
-                float distance = direction.length();
-                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                // Normalize the movement vector to have a unit direction
                 direction = direction.normalize();
-                // Appliquer le déplacement au joueur
+                // Apply the movement to the player
                 ai.setLinearVelocity(direction.mult(30)); // Multiplier par une vitesse de déplacement
             } else {
                 ai.setLinearVelocity(new Vector3f(0, 0, 0));
@@ -748,10 +793,10 @@ public static void main(String[] args) {
         } else if ((palet.getPhysicsLocation().x > ai.getPhysicsLocation().x) && (palet.getPhysicsLocation().x > -17)) {
             Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
             float distance = direction.length();
-            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            // Normalize the movement vector to have a unit direction
             direction = direction.normalize();
             float speedMultiplier = min(distance / 2, 1.0f);
-            // Appliquer le déplacement au joueur
+            // Apply the movement to the player
             ai.setLinearVelocity(direction.mult(speedMultiplier * 45)); // Multiplier par une vitesse de déplacement
             if (ai.getPhysicsLocation().x > -5) {
                 Vector3f temp = ai.getLinearVelocity();
@@ -767,10 +812,9 @@ public static void main(String[] args) {
             Vector3f defense = new Vector3f(base.x + rapport * (paletpos.x - base.x), 0f, base.z + rapport * (paletpos.z - base.z));
             if ((abs(defense.x - ai.getPhysicsLocation().x) > 1) || (abs(defense.z - ai.getPhysicsLocation().z) > 1)) {
                 Vector3f direction = defense.subtract(ai.getPhysicsLocation());
-                float distance = direction.length();
-                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                // Normalize the movement vector to have a unit direction
                 direction = direction.normalize();
-                // Appliquer le déplacement au joueur
+                // Apply the movement to the player
                 ai.setLinearVelocity(direction.mult(40)); // Multiplier par une vitesse de déplacement
             } else {
                 ai.setLinearVelocity(new Vector3f(0, 0, 0));
@@ -779,6 +823,9 @@ public static void main(String[] args) {
         }
     }
 
+    /**
+     * Define the behavior of the enemy (AI) in the Pong mode
+     */
     public void EnnemiComportementPong() {
         ai.setAngularVelocity(new Vector3f(0,0,0));
 
@@ -786,11 +833,11 @@ public static void main(String[] args) {
             if(abs(palet.getPhysicsLocation().z - ai.getPhysicsLocation().z) > 1.5) {
                 Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
                 float distance = direction.length();
-                // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+                // Normalize the movement vector to have a unit direction
                 direction = direction.normalize();
                 direction.setX(0);
                 float speedMultiplier = min(distance / 2, 1.0f);
-                // Appliquer le déplacement au joueur
+                // Apply the movement to the player
                 ai.setLinearVelocity(direction.mult(speedMultiplier * 60)); // Multiplier par une vitesse de déplacement
             }
             else{
@@ -800,41 +847,52 @@ public static void main(String[] args) {
         else{
             Vector3f direction = palet.getPhysicsLocation().subtract(ai.getPhysicsLocation());
             float distance = direction.length();
-            // Normaliser le vecteur de déplacement pour avoir une direction unitaire
+            // Normalize the movement vector to have a unit direction
             direction = direction.normalize();
             direction.setX(0);
             float speedMultiplier = min(distance / 2, 1.0f);
-            // Appliquer le déplacement au joueur
+            // Apply the movement to the player
             ai.setLinearVelocity(direction.mult(-speedMultiplier * 50)); // Multiplier par une vitesse de déplacement
         }
 
     }
 
+    /**
+     * Update the game for each frame
+     * @param tpf The time per frame
+     */
     public void simpleUpdate(float tpf) {
+        // If the game is not paused
         if(!isPaused) {
             palet.setAngularVelocity(new Vector3f(0,0,0));
             palet.setAngularFactor(0);
-            if (ennemy == 0)
+            if (enemy == 0)
                 EnnemiComportement();
             else
                 EnnemiComportementPong();
 
+            // Movement of the camera
             if (camIsMoving) {
+                // Calculate the elapsed time
                 float elapsedTime = (System.currentTimeMillis() - startTime) / 1000f;
-                float t = elapsedTime / duration; // t increases linearly with time
+                float t = elapsedTime / 2.0f; // t increases linearly with time
 
+                // Interpolate the camera's location
                 Vector3f location = new Vector3f(
                         FastMath.interpolateLinear(t, startLocation.x, targetLocation.x),
                         FastMath.interpolateLinear(t, startLocation.y, targetLocation.y),
                         FastMath.interpolateLinear(t, startLocation.z, targetLocation.z)
                 );
 
+                // Interpolate the camera's lookAt
                 Vector3f currentLookAt = new Vector3f();
                 currentLookAt.interpolateLocal(startLookAt, targetLookAt, t);
 
+                // Interpolate the camera's rotation
                 Quaternion currentRotation = new Quaternion();
                 currentRotation.slerp(startRotation, targetRotation, t);
 
+                // Update the camera's location, lookAt, and rotation
                 camNode.setLocalTranslation(location);
                 camNode.setLocalRotation(currentRotation);
                 cam.lookAt(currentLookAt, Vector3f.UNIT_Y);
@@ -842,6 +900,7 @@ public static void main(String[] args) {
                 // Update the camera's location
                 cam.setLocation(camNode.getLocalTranslation());
 
+                // Check if the camera has reached its target location
                 if (t >= 1) {
                     camIsMoving = false;
                 }
@@ -853,7 +912,8 @@ public static void main(String[] args) {
                 time++;
                 tpfTime = 0.0f;
             }
-        */
+            */
+            // Define which player touched the palet in last
             if (player.getPhysicsLocation().distance(palet.getPhysicsLocation()) <
                     4) {
                 // Le joueur 1 a touché le palet
@@ -863,25 +923,26 @@ public static void main(String[] args) {
                 // Le joueur 2 a touché le palet
                 lastPlayerTouched = ai;
             }
+            /* Bonuses reactions */
             // If the palet was growed
-            if (growp){
-                if (growTimerp > 10f){
-                    growTimerp = 0.0f;
-                    growp = false;
+            if (growP){
+                if (growTimerP > 10f){
+                    growTimerP = 0.0f;
+                    growP = false;
                     resetPalet(palet);
                 }
                 else {
-                    growTimerp += tpf;
+                    growTimerP += tpf;
                 }
             // If the palet was shrinked
-            } else if (shrinkp) {
-                if (shrinkTimerp > 10f){
-                    shrinkTimerp = 0.0f;
-                    shrinkp = false;
+            } else if (shrinkP) {
+                if (shrinkTimerP > 10f){
+                    shrinkTimerP = 0.0f;
+                    shrinkP = false;
                     resetPalet(palet);
                 }
                 else {
-                    shrinkTimerp += tpf;
+                    shrinkTimerP += tpf;
                 }
             // If the palet was speeded
             } else if (speed) {
@@ -893,40 +954,45 @@ public static void main(String[] args) {
                 else {
                     speedTimer += tpf;
                 }
-            } else if (growr) {
-                if (growTimerr > 20f){
-                    growTimerr = 0.0f;
-                    growr = false;
-                    resetRaquette(playertouched);
+            } else if (growR) {
+                if (growTimerR > 20f){
+                    growTimerR = 0.0f;
+                    growR = false;
+                    resetRaquette(playerTouched);
                 }
                 else {
-                    growTimerr += tpf;
+                    growTimerR += tpf;
                 }
-            } else if (shrinkr) {
-                if (shrinkTimerr > 20f){
-                    shrinkTimerr = 0.0f;
-                    shrinkr = false;
-                    resetRaquette(playertouched);
+            } else if (shrinkR) {
+                if (shrinkTimerR > 20f){
+                    shrinkTimerR = 0.0f;
+                    shrinkR = false;
+                    resetRaquette(playerTouched);
                 }
                 else {
-                    shrinkTimerr += tpf;
+                    shrinkTimerR += tpf;
                 }
             }
             if (bonuses >= 1){
-                for (int i = 0; i < sphereGhostControls.size(); i++) {
-                    GhostControl sphereGhostControl = sphereGhostControls.get(i);
-                    Geometry sphereGeom = sphereGeoms.get(i);
+                Iterator<GhostControl> ghostControlIterator = sphereGhostControls.iterator();
+                Iterator<Geometry> geometryIterator = sphereGeoms.iterator();
 
+                while (ghostControlIterator.hasNext() && geometryIterator.hasNext()) {
+                    GhostControl sphereGhostControl = ghostControlIterator.next();
+                    Geometry sphereGeom = geometryIterator.next();
+
+                    // We check if the palet is touching one bonus
                     if (sphereGhostControl.getOverlappingObjects().contains(palet)) {
-                        // Si le palet a touché la sphère, retirez la sphère de la scène et de l'espace physique
+                        // If palet is touching the bonus, we remove it
                         sphereGeom.removeFromParent();
                         bulletAppState.getPhysicsSpace().remove(sphereGhostControl);
 
-                        // Retirer le GhostControl et la géométrie de la liste
-                        sphereGhostControls.remove(i);
-                        sphereGeoms.remove(i);
+                        // Remove the ghost control and the geometry from the lists
+                        ghostControlIterator.remove();
+                        geometryIterator.remove();
 
                         bonuses -= 1;
+                        // Apply a random bonus
                         Random rand = new Random();
                         int bonus = rand.nextInt(7);
                         switch (bonus){
@@ -939,16 +1005,17 @@ public static void main(String[] args) {
                             case 2:
                                 // Palet grows 20%
                                 growPalet(palet);
-                                growTimerp += tpf;
-                                growp = true;
+                                growTimerP += tpf;
+                                growP = true;
                                 break;
                             case 3:
                                 // Palet shrinks 20%
                                 shrinkPalet(palet);
-                                shrinkTimerp += tpf;
-                                shrinkp = true;
+                                shrinkTimerP += tpf;
+                                shrinkP = true;
                                 break;
                             default:
+                                // Other bonuses (Grow and shrink raquette, or palet goes directly to the cage) apply on enemy of the last player who touched the palet
                                 if (lastPlayerTouched == player) {
                                     applyBonus(ai, bonus, tpf);
                                 } else if (lastPlayerTouched == ai) {
@@ -958,6 +1025,7 @@ public static void main(String[] args) {
                     }
                 }
             }
+            // Add a bonus every 10 seconds
             if (bonusTimer > 10f) {
                 Random rand = new Random();
                 float x = rand.nextFloat() * (15 - (-15)) + (-15);
@@ -973,6 +1041,7 @@ public static void main(String[] args) {
             else {
                 bonusTimer += tpf;
             }
+            // Check if someone won
             if(blueScore == 12 || redScore == 12){
                 isPaused = true;
                 isStarted = false;
@@ -1009,7 +1078,7 @@ public static void main(String[] args) {
                 }
             }
 
-
+            // Movement of the palet
             Vector3f bloqueRaquette;
             Vector3f bloquePalet;
 
@@ -1033,7 +1102,7 @@ public static void main(String[] args) {
             Objects.requireNonNull(Objects.requireNonNull(redScoreText).getRenderer(TextRenderer.class)).setText("Red score: " + redScore);
             //Objects.requireNonNull(Objects.requireNonNull(timeText).getRenderer(TextRenderer.class)).setText("Time: " + time);
 
-
+            // Movement of the player based on the mouse click and his position
             if (click) {
 
                 inputManager.setCursorVisible(false);
@@ -1086,11 +1155,18 @@ public static void main(String[] args) {
         }else{
             player.setLinearVelocity(new Vector3f(0f, 0f, 0f));
             palet.setLinearVelocity(new Vector3f(0f, 0f, 0f));
+            inputManager.setCursorVisible(true);
         }
     }
 
+    /**
+     * Apply a bonus to a player
+     * @param player The player to apply the bonus
+     * @param bonus The bonus to apply
+     * @param tpf The time per frame
+     */
     public void applyBonus(RigidBodyControl player, int bonus, float tpf) {
-        playertouched = player;
+        playerTouched = player;
         switch (bonus) {
             case 4 :
                 // Palet goes to the adversary cage
@@ -1104,18 +1180,25 @@ public static void main(String[] args) {
             case 5 :
                 // Adversary raquette grows 20%
                 growRaquette(player);
-                growr = true;
-                growTimerr += tpf;
+                growR = true;
+                growTimerR += tpf;
                 break;
             case 6 :
                 // Adversary raquette shrinks 20%
                 shrinkRaquette(player);
-                shrinkr = true;
-                shrinkTimerr += tpf;
+                shrinkR = true;
+                shrinkTimerR += tpf;
                 break;
         }
     }
 
+    /**
+     * Check if there is a bonus at the coordinates
+     * @param x The x coordinate
+     * @param y The y coordinate
+     * @param z The z coordinate
+     * @return If there is a bonus at the coordinates
+     */
     public boolean isBonusAtCoordinates(float x, float y, float z) {
         for (Geometry sphereGeom : sphereGeoms) {
             if (sphereGeom.getLocalTranslation().x == x && sphereGeom.getLocalTranslation().y == y && sphereGeom.getLocalTranslation().z == z) {
@@ -1125,20 +1208,32 @@ public static void main(String[] args) {
         return false;
     }
 
+    /**
+     * Grow the palet by 20%
+     * @param palet The palet to grow (RigidBodyControl)
+     */
     public void growPalet(RigidBodyControl palet){
         Geometry geom = (Geometry) palet.getSpatial();
         Vector3f scale = geom.getLocalScale();
         geom.setLocalScale(scale.mult(1.2f));
     }
 
+    /**
+     * Shrink the palet by 20%
+     * @param palet The palet to shrink (RigidBodyControl)
+     */
     public void shrinkPalet(RigidBodyControl palet){
         Geometry geom = (Geometry) palet.getSpatial();
         Vector3f scale = geom.getLocalScale();
         geom.setLocalScale(scale.mult(0.8f));
     }
 
+    /**
+     * Grow the raquette by 20%
+     * @param raquette The raquette to grow (RigidBodyControl)
+     */
     public void growRaquette(RigidBodyControl raquette) {
-        if (whichEnnemy == 0){
+        if (whichEnemy == 0){
             Geometry geom = (Geometry) raquette.getSpatial();
             geom.setLocalScale(geom.getLocalScale().mult(1.2f));
         } else {
@@ -1149,8 +1244,12 @@ public static void main(String[] args) {
 
     }
 
+    /**
+     * Shrink the raquette by 20%
+     * @param raquette The raquette to shrink (RigidBodyControl)
+     */
     public void shrinkRaquette(RigidBodyControl raquette) {
-        if (whichEnnemy == 0){
+        if (whichEnemy == 0){
             Geometry geom = (Geometry) raquette.getSpatial();
             geom.setLocalScale(geom.getLocalScale().mult(0.8f));
         } else {
@@ -1160,8 +1259,12 @@ public static void main(String[] args) {
         }
     }
 
+    /**
+     * Reset the raquette to its original size
+     * @param raquette The raquette to reset (RigidBodyControl)
+     */
     public void resetRaquette(RigidBodyControl raquette) {
-        if (whichEnnemy == 0){
+        if (whichEnemy == 0){
             Geometry geom = (Geometry) raquette.getSpatial();
             geom.setLocalScale(new Vector3f(1f, 1f, 1f));
         } else {
@@ -1171,16 +1274,26 @@ public static void main(String[] args) {
         }
     }
 
+    /**
+     * Reset the palet to its original size
+     * @param palet The palet to reset (RigidBodyControl)
+     */
     public void resetPalet(RigidBodyControl palet){
         Geometry geom = (Geometry) palet.getSpatial();
         geom.setLocalScale(1f, 1f, 1f);
     }
 
+    /**
+     * Pause the game
+     */
     @SuppressWarnings("unused")
     public void pauseGame() {
         isPaused = true;
     }
 
+    /**
+     * Resume the game
+     */
     @SuppressWarnings("unused")
     public void resumeGame() {
         isPaused = false;
